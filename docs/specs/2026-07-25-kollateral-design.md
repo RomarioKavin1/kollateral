@@ -89,11 +89,21 @@ Design rules: numbers before narrative; citation on every claim; **zero editoria
 4. **Marco/redemption beat:** claimed profile + staked call w/ gold border — "we pay honest callers as much as we cost liars."
 Close: receipt strip click — "every judgment TEE-signed on 0G; the platform cannot rig its own referee."
 
+## Data ingestion (DECIDED Jul 25: X only, via XActions)
+
+- **Source:** X only — no Farcaster. Tool: **XActions v3.4.4** (github.com/nirholas/XActions; pushed Jul 23, 108 tools, data-testid DOM automation, JSON/CSV export, MCP server available). Puppeteer against a logged-in session.
+- **Accounts:** burner X accounts ONLY (make 2 tonight; rotate if flagged). Never a personal account.
+- **Archive build:** search scraper with `from:handle since: until:` windows per target account → raw JSON + content hash into our DB. Start as background job the moment the viability test passes; ~15–20 celebrity accounts × ~300 posts.
+- **Runtime rule:** the product runs 100% off our own DB. No user-facing path ever waits on a live scrape.
+- **Live feed:** XActions polling loop (60–120s cadence) on tracked handles. Demo's "call lands live" moment = a rehearsed post from a teammate's account picked up by the poller — real pipeline, controlled timing.
+- **Deletion detection:** periodic status-URL recheck loop via same session (cheap, low ban-risk).
+- **Viability gate (hour one):** pull 50 historical posts from one target handle. Fallback if it fails: paid unofficial scraper API (twitterapi.io/Apify class, few dollars for full archive).
+
 ## Risks & fallbacks
 
 | Risk | Mitigation |
 |---|---|
-| X data access (UNRESOLVED — decide NOW) | X API paid tier if keys obtainable today; else Farcaster live + pre-indexed archive set (~15–20 famous accounts) |
+| XActions scrape breaks / burner banned mid-archive | second burner ready; paid scraper API break-glass; all scraped data cached immediately |
 | 0G Router flaky / JSON discipline | tool-call schema + zod + retry; provider failover; worst case: conventional model flagged "unverified" in UI, keep 0G for subset |
 | Token API OHLC depth / 180d transfer lookback caps | subgraph time-travel fallback (also = Composable qualification) |
 | Memecoin not routable on Uniswap (FOT/illiquid) | test target tokens early; demo tokens = liquid majors + 1-2 known memecoins |
