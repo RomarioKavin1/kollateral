@@ -100,9 +100,25 @@ Close: receipt strip click — "every judgment TEE-signed on 0G; the platform ca
 | Extraction misparse on stage | pre-indexed accounts hand-reviewed Sat night; publish-threshold 0.85; ambiguous bucket visible |
 | One green dossier needed (board can't be all red) | index at least one genuinely good caller |
 
-## Cut order (if behind)
+## Competitive landscape (researched Jul 25; name competitors BEFORE judges do)
 
-stake escrow → claim flow → share-card generator → Said-vs-Did (keep ONE canned case for demo) → live wallet alerts → Composable/MCP adapter. **Never cut:** dossier verdict block, call ledger with receipts, one real FADE swap, TEE receipt strip.
+Market splits into four camps — none covers our full scope:
+1. **Wallet trackers w/ execution** (Kolscan→pump.fun, GMGN, Nansen, Cielo, Axiom): track what KOLs *do*, never what they *say*. Follow-only — GMGN docs confirm no inverse mode.
+2. **Tweet-call scorers w/o execution**: **Sanitizer (sanitize.page)** = closest competitor — call accuracy, win rate, PnL, *preserves deleted calls*, Santiment-promoted. DexCheck KOL Scanner (mention-based, project appears to be dying). CallScan (pre-launch waitlist).
+3. **Attention rankers** (Kaito, LunarCrush): measure loudness, not correctness.
+4. **Inverse execution**: exists exactly twice ever — Copin.io (wallet-level perps only) and the Inverse Cramer ETF **SJIM, liquidated Feb 2024 because manually monitoring statements was too costly — the exact bottleneck our LLM extraction removes**.
+
+**Unclaimed (our differentiation, verbatim for pitch):** said-vs-did automation (only manual ZachXBT exposés exist) · statement-level FADE execution · price-settled caller self-staking (Melee monetizes controversy but callers stake nothing) · benchmark-vs-ETH honesty (all trackers show raw ROI) · TEE-verified scoring (every competitor is a trust-me black box — vs Sanitizer this is the kill shot).
+
+**Validation ammo:** TipRanks = the TradFi proof ($200M Prytek acquisition, white-labeled in Schwab/E*TRADE/IBKR, RANK ETF July 2026; top-10 scored bloggers +23.4% vs avg −3.6%). Autopilot: $1.3B AUM copying tracked public figures. Pump.fun paid real money for Kolscan (the "did" half alone). RAS 2024 academic study: 36k tweets, 180 influencers → +1.83% day 1, **−6.53% by day 30** ("consistent with pump-and-dump").
+
+**Threats to acknowledge if asked:** pump.fun (owns Kolscan + Padre/Terminal — one product decision from closing the gap); Axiom (owns order flow, in-terminal X tracker). **Structural risk:** X's Jan 2026 API crackdown killed Kaito Yaps — data sourcing is our hardest dependency (→ Farcaster/archive fallback is strategic, not just tactical).
+
+**Positioning line:** "Sanitizer counts wins, DexCheck counts mentions, Kolscan watches wallets. Nobody connects what they SAID to what they DID, lets you TRADE against it, makes them STAKE on it, or can PROVE the scoring wasn't rigged. KOLlateral is all four."
+
+## Cut order (if behind) — revised post-market-research
+
+stake escrow → claim flow → share-card generator → live wallet alerts → Composable/MCP adapter. **Said-vs-Did promoted to never-cut** (it's the core differentiation vs Sanitizer, not a bonus feature; absolute minimum = one live-data case study). **Never cut:** dossier verdict block + ETH benchmark, call ledger with receipts, Said-vs-Did, one real FADE swap, TEE receipt strip.
 
 ## Open decisions
 
