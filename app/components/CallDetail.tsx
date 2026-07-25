@@ -148,9 +148,8 @@ export function CallDetail({
               className="px-3 py-2 text-sm"
               style={{
                 borderRadius: "var(--radius)",
-                border: "1px solid var(--line)",
-                borderLeft: "2px solid var(--loss)",
-                background: "var(--surface)",
+                border: "1px solid color-mix(in oklch, var(--loss) 45%, var(--line))",
+                background: "color-mix(in oklch, var(--loss) 8%, var(--surface))",
                 color: "var(--loss)",
               }}
             >

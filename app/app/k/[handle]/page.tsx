@@ -111,9 +111,8 @@ export default function DossierPage() {
           style={{
             fontSize: 13,
             color: "var(--loss)",
-            border: "1px solid var(--line)",
-            borderLeft: "2px solid var(--loss)",
-            background: "var(--surface)",
+            border: "1px solid color-mix(in oklch, var(--loss) 45%, var(--line))",
+            background: "color-mix(in oklch, var(--loss) 8%, var(--surface))",
             borderRadius: "var(--radius)",
             padding: "10px 14px",
             marginBottom: 32,
