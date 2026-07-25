@@ -60,53 +60,65 @@ export function Header() {
     }
   }
 
+  const btn: React.CSSProperties = {
+    fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase",
+    border: "1px solid var(--line-strong)", borderRadius: "var(--radius)", padding: "6px 12px",
+    background: "transparent", color: "var(--muted)", cursor: "pointer",
+    transition: "color .2s, border-color .2s, background .2s",
+  };
+  const btnPrimary: React.CSSProperties = { ...btn, background: "var(--ink)", color: "var(--bg)", borderColor: "var(--ink)" };
+
   return (
     <header
       style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: 16,
-        padding: 12,
-        borderBottom: "1px solid #444",
+        position: "sticky", top: 0, zIndex: 50,
+        display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16,
+        padding: "10px 24px",
+        borderBottom: "1px solid var(--line)",
+        background: "color-mix(in oklch, var(--bg) 80%, transparent)",
+        backdropFilter: "blur(8px)",
       }}
     >
-      <nav style={{ display: "flex", gap: 12 }}>
-        <Link href="/">Home</Link>
-        <Link href="/terminal">Terminal</Link>
-        <Link href="/allocations">Allocations</Link>
-        <Link href="/portfolio">Portfolio</Link>
+      <Link href="/" className="pixel" style={{ fontSize: 15, letterSpacing: "0.04em", color: "var(--ink)" }}>
+        KOLLATERAL
+      </Link>
+      <nav style={{ display: "flex", gap: 20 }}>
+        {[["/terminal", "Terminal"], ["/allocations", "Allocations"], ["/portfolio", "Portfolio"]].map(([href, label]) => (
+          <Link key={href} href={href} className="link label" style={{ fontSize: 11 }}>
+            {label}
+          </Link>
+        ))}
       </nav>
 
-      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-        {!ready && <span>loading auth…</span>}
+      <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
+        {!ready && <span className="label flick">auth…</span>}
 
-        {ready && !authenticated && <button onClick={() => login()}>Log in</button>}
+        {ready && !authenticated && (
+          <button style={btnPrimary} onClick={() => login()}>Log in</button>
+        )}
 
         {ready && authenticated && (
           <>
-            <span style={{ fontFamily: "monospace", fontSize: 12 }}>
-              {embeddedWallet
-                ? `${embeddedWallet.address.slice(0, 6)}…${embeddedWallet.address.slice(-4)}`
-                : "no embedded wallet"}
-            </span>
-
+            {embeddedWallet && (
+              <span className="label tnum" style={{ color: "var(--muted)" }}>
+                {embeddedWallet.address.slice(0, 6)}…{embeddedWallet.address.slice(-4)}
+              </span>
+            )}
             {embeddedWallet && !isDelegated && (
-              <button onClick={() => void handleDelegate()} disabled={delegating}>
+              <button style={btn} onClick={() => void handleDelegate()} disabled={delegating}>
                 {delegating ? "enabling…" : "Enable auto-trading"}
               </button>
             )}
             {embeddedWallet && isDelegated && (
               <>
-                <span>auto-trading enabled</span>
-                <button onClick={() => void handleRevoke()} disabled={delegating}>
-                  {delegating ? "disabling…" : "Disable auto-trading"}
+                <span className="label" style={{ color: "var(--gain)" }}>● auto-trading on</span>
+                <button style={btn} onClick={() => void handleRevoke()} disabled={delegating}>
+                  {delegating ? "disabling…" : "Disable"}
                 </button>
               </>
             )}
-            {delegateError && <span style={{ color: "red" }}>{delegateError}</span>}
-
-            <button onClick={() => void logout()}>Log out</button>
+            {delegateError && <span className="label" style={{ color: "var(--loss)" }}>{delegateError.slice(0, 40)}</span>}
+            <button style={btn} onClick={() => void logout()}>Log out</button>
           </>
         )}
       </div>
