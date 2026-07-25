@@ -47,10 +47,27 @@ export interface DossierCall {
   chat_id: string | null;
 }
 
+export interface SaidVsDidCase {
+  call: { content: string; url: string; posted_at: number; asset_symbol: string | null };
+  event: { tx_hash: string; usd_value: number; occurred_at: number };
+  gapHours: number;
+}
+
+export interface SaidVsDid {
+  wallet: string | null;
+  attribution: string | null;
+  cases: SaidVsDidCase[];
+  // Extra field beyond the brief's minimal shape: total wallet_events on file
+  // for this influencer, so the empty state can cite "N wallet events checked"
+  // instead of a bare "no contradictions" (numbers/citations only, no adjectives).
+  walletEventsChecked: number;
+}
+
 export interface Dossier {
   handle: string;
   stats: ReturnType<typeof dossierStats>;
   calls: DossierCall[];
+  saidVsDid: SaidVsDid;
 }
 
 // Marks semantics (Task 6): per call, kind 'entry' = token entry price,
@@ -60,8 +77,8 @@ export function buildDossier(handle: string): Dossier | null {
   const db = getDb();
 
   const influencer = db
-    .prepare("SELECT id, handle FROM influencers WHERE handle = ?")
-    .get(handle) as { id: number; handle: string } | undefined;
+    .prepare("SELECT id, handle, wallet_address FROM influencers WHERE handle = ?")
+    .get(handle) as { id: number; handle: string; wallet_address: string | null } | undefined;
   if (!influencer) return null;
 
   const callRows = db
@@ -168,5 +185,70 @@ export function buildDossier(handle: string): Dossier | null {
   // on `if (e)` before using an entry).
   const stats = dossierStats(scorableCalls, ethPairs as { entry: number; latest: number }[]);
 
-  return { handle: influencer.handle, stats, calls };
+  const saidVsDid = buildSaidVsDid(db, influencer.id, influencer.wallet_address);
+
+  return { handle: influencer.handle, stats, calls, saidVsDid };
+}
+
+interface ContradictionRow {
+  content: string;
+  url: string;
+  posted_at: number;
+  asset_symbol: string | null;
+  tx_hash: string;
+  usd_value: number;
+  occurred_at: number;
+  gap_hours: number;
+}
+
+function buildSaidVsDid(
+  db: ReturnType<typeof getDb>,
+  influencerId: number,
+  wallet: string | null
+): SaidVsDid {
+  const attributionRow = db
+    .prepare("SELECT note FROM wallet_attributions WHERE influencer_id = ?")
+    .get(influencerId) as { note: string } | undefined;
+
+  const walletEventsChecked = (
+    db
+      .prepare("SELECT COUNT(*) as n FROM wallet_events WHERE influencer_id = ?")
+      .get(influencerId) as { n: number }
+  ).n;
+
+  const rows = db
+    .prepare(
+      `SELECT p.content, p.url, p.posted_at, c.asset_symbol,
+              we.tx_hash, we.usd_value, we.occurred_at,
+              ct.gap_hours
+       FROM contradictions ct
+       JOIN calls c ON c.id = ct.call_id
+       JOIN posts p ON p.id = c.post_id
+       JOIN wallet_events we ON we.id = ct.wallet_event_id
+       WHERE p.influencer_id = ?
+       ORDER BY p.posted_at ASC`
+    )
+    .all(influencerId) as ContradictionRow[];
+
+  const cases: SaidVsDidCase[] = rows.map((r) => ({
+    call: {
+      content: r.content,
+      url: r.url,
+      posted_at: r.posted_at,
+      asset_symbol: r.asset_symbol,
+    },
+    event: {
+      tx_hash: r.tx_hash,
+      usd_value: r.usd_value,
+      occurred_at: r.occurred_at,
+    },
+    gapHours: r.gap_hours,
+  }));
+
+  return {
+    wallet,
+    attribution: attributionRow?.note ?? null,
+    cases,
+    walletEventsChecked,
+  };
 }

@@ -15,7 +15,15 @@ import {
 import { VerdictBlock } from "@/components/VerdictBlock";
 import { CallLedger } from "@/components/CallLedger";
 import { CallDetail } from "@/components/CallDetail";
+import { SaidVsDid } from "@/components/SaidVsDid";
 import type { Dossier, DossierCall } from "@/lib/dossier";
+
+type Tab = "calls" | "said-vs-did";
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "calls", label: "Calls" },
+  { key: "said-vs-did", label: "Said vs. Did" },
+];
 
 export default function DossierPage() {
   const params = useParams<{ handle: string }>();
@@ -25,6 +33,7 @@ export default function DossierPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<DossierCall | null>(null);
+  const [tab, setTab] = useState<Tab>("calls");
 
   useEffect(() => {
     if (!handle) return;
@@ -84,42 +93,64 @@ export default function DossierPage() {
       <h1 className="text-2xl font-semibold text-neutral-200">{dossier.handle}</h1>
       <VerdictBlock stats={dossier.stats} />
 
-      {curve.length > 0 && (
-        <div className="mb-10">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={curve}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-              <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} />
-              <YAxis stroke="#a3a3a3" fontSize={12} />
-              <Tooltip
-                contentStyle={{ background: "#171717", border: "1px solid #262626" }}
-                labelStyle={{ color: "#e5e5e5" }}
-              />
-              <Legend wrapperStyle={{ color: "#a3a3a3" }} />
-              <Line
-                type="monotone"
-                dataKey="call"
-                name="Calls"
-                stroke={callColor}
-                dot={false}
-                strokeWidth={2}
-              />
-              <Line
-                type="monotone"
-                dataKey="eth"
-                name="ETH"
-                stroke="#a3a3a3"
-                dot={false}
-                strokeWidth={2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="flex gap-2 mb-6 border-b border-neutral-800">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-3 py-2 text-sm border-b-2 -mb-px ${
+              tab === t.key
+                ? "border-neutral-200 text-neutral-100"
+                : "border-transparent text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "calls" && (
+        <>
+          {curve.length > 0 && (
+            <div className="mb-10">
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={curve}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                  <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} />
+                  <YAxis stroke="#a3a3a3" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{ background: "#171717", border: "1px solid #262626" }}
+                    labelStyle={{ color: "#e5e5e5" }}
+                  />
+                  <Legend wrapperStyle={{ color: "#a3a3a3" }} />
+                  <Line
+                    type="monotone"
+                    dataKey="call"
+                    name="Calls"
+                    stroke={callColor}
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="eth"
+                    name="ETH"
+                    stroke="#a3a3a3"
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <CallLedger calls={dossier.calls} onSelect={handleSelect} />
+
+          {selected && <CallDetail call={selected} onClose={() => setSelected(null)} />}
+        </>
       )}
 
-      <CallLedger calls={dossier.calls} onSelect={handleSelect} />
-
-      {selected && <CallDetail call={selected} onClose={() => setSelected(null)} />}
+      {tab === "said-vs-did" && <SaidVsDid data={dossier.saidVsDid} />}
     </div>
   );
 }
