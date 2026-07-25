@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAccount } from "wagmi";
 import { FadeTicket } from "@/components/FadeTicket";
+import { DitherArt } from "@/components/DitherArt";
 import type { DossierCall } from "@/lib/dossier";
 
 interface FeedCall {
@@ -117,6 +118,15 @@ export default function TerminalPage() {
             connect a wallet on a call&apos;s ticket to FADE or FOLLOW
           </span>
         )}
+      </div>
+
+      {/* live wire: a dithered signal band that reads as the feed streaming in */}
+      <div style={{ position: "relative", marginTop: 22, height: 72, background: "var(--dark)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+        <DitherArt shape="arrows" invert gap={4} className="h-full w-full" />
+        <div className="label" style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", color: "var(--dark-ink)", display: "flex", alignItems: "center", gap: 8 }}>
+          <span className="flick" style={{ color: "var(--signal)", fontSize: 16, lineHeight: 1 }}>●</span>
+          live wire · {calls?.length ?? 0} calls indexed
+        </div>
       </div>
 
       {loading && <div className="label flick" style={{ padding: "48px 0" }}>reading the feed…</div>}
