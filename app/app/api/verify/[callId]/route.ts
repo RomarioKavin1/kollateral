@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { classifyPost } from "@/lib/zg";
+import { classifyPost, providerAttestation } from "@/lib/zg";
 
-// Live 0G TEE verification for one call. Re-runs the call's post through the 0G
-// router with verify_tee:true (pinned to a private/TEE provider); the router
-// performs on-chain signature verification and returns x_0g_trace.tee_verified.
-// This is the real check surfaced as a button. Costs one small inference.
+// Live 0G TEE verification for one call, with independent evidence.
+// Re-runs the post through the 0G router with verify_tee:true (pinned to a
+// private/TEE provider); the router performs on-chain signature verification
+// and returns x_0g_trace.tee_verified. We also pull the provider's attestation
+// record from 0G's own /providers registry so the "verified" result is backed
+// by reproducible, 0G-sourced evidence (TEE type, verifier, verifiability),
+// not just our word. Costs one small inference.
 export async function GET(_req: Request, { params }: { params: Promise<{ callId: string }> }) {
   const { callId } = await params;
   const db = getDb();
@@ -22,11 +25,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ callId:
 
   try {
     const c = await classifyPost(row.content, row.posted_at);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- x_0g_trace is a 0G router extension
+    const trace = (c.raw as any)?.x_0g_trace ?? {};
+    const requestId: string | null = trace.request_id ?? null;
+    const attestation = c.providerAddress ? await providerAttestation(c.providerAddress) : null;
+
     if (c.teeVerified === true) {
       return NextResponse.json({
         status: "verified",
         verified: true,
         provider: c.providerAddress,
+        requestId,
+        attestation,
+        trace,
         detail: "The 0G router verified the provider's on-chain TEE signature for this inference (verify_tee).",
       });
     }
@@ -35,6 +46,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ callId:
         status: "failed",
         verified: false,
         provider: c.providerAddress,
+        requestId,
+        attestation,
         detail: "The provider's TEE signature did not verify on-chain.",
       });
     }
@@ -42,8 +55,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ callId:
       status: "unavailable",
       verified: false,
       provider: c.providerAddress,
+      attestation,
       detail:
-        "This model is served with transport-layer (TeeTLS) attestation and returns no per-response signature, so there is nothing to verify. Use a TeeML model (e.g. 0gm-1.0-35b-a3b) for an on-chain-verified check.",
+        "This model is served with transport-layer (TeeTLS) attestation and returns no per-response signature. Use a TeeML model (e.g. 0gm-1.0-35b-a3b) for an on-chain-verified check.",
     });
   } catch (e) {
     return NextResponse.json({

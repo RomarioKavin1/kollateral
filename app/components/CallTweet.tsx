@@ -168,6 +168,14 @@ export function CallTweet({
                   <span className="proof-dot" /> look up this provider on the 0G explorer ↗
                 </a>
               )}
+              {/* trustless: anyone can reproduce the check against 0G directly */}
+              <div className="label" style={{ color: "var(--faint)", lineHeight: 1.6 }}>
+                verify independently: POST it to 0G&apos;s router (
+                <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>router-api.0g.ai/v1/chat/completions</span>
+                ) with <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>verify_tee:true</span> + header{" "}
+                <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>X-0G-Provider-Trust-Mode: private</span>; the response&apos;s{" "}
+                <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>x_0g_trace.tee_verified</span> is 0G&apos;s answer, not ours.
+              </div>
             </div>
           </div>
         )}
@@ -201,7 +209,24 @@ export function CallTweet({
   );
 }
 
-type VerifyResult = { status: "verified" | "unavailable" | "failed"; verified: boolean; provider?: string | null; detail: string };
+type Attestation = {
+  address: string;
+  modelId: string | null;
+  verifiability: string | null;
+  teeType: string | null;
+  teeVerifier: string | null;
+  teeAttested: boolean;
+  trustMode: string | null;
+  providerName: string | null;
+};
+type VerifyResult = {
+  status: "verified" | "unavailable" | "failed";
+  verified: boolean;
+  provider?: string | null;
+  requestId?: string | null;
+  attestation?: Attestation | null;
+  detail: string;
+};
 
 // Runs 0G's own verification (broker.processResponse) live, via /api/verify.
 function VerifyButton({ callId }: { callId: number }) {
@@ -231,17 +256,38 @@ function VerifyButton({ callId }: { callId: number }) {
         {state === "loading" ? "verifying against 0G…" : "verify this inference now"}
       </button>
       {state === "done" && res && (
-        <div className="label" style={{ marginTop: 8, color, lineHeight: 1.5 }}>
-          {mark} · {res.detail}
-          {res.verified && res.provider && (
-            <div style={{ marginTop: 4 }}>
-              <a href={zgAddressUrl(res.provider)} target="_blank" rel="noopener noreferrer" className="link" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "var(--ink)" }}>
-                verified provider {res.provider.slice(0, 10)}… ↗
-              </a>
+        <div style={{ marginTop: 8 }}>
+          <div className="label" style={{ color, lineHeight: 1.5 }}>{mark} · {res.detail}</div>
+          {/* independent, 0G-sourced evidence — not our claim */}
+          {(res.attestation || res.requestId || res.provider) && (
+            <div style={{ marginTop: 8, border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: "10px 12px", background: "var(--surface)" }}>
+              <div className="label" style={{ marginBottom: 8 }}>// evidence, from 0G&apos;s own registry</div>
+              {res.attestation?.teeType && <EvRow k="TEE hardware" v={res.attestation.teeType} />}
+              {res.attestation?.teeVerifier && <EvRow k="attestation" v={res.attestation.teeVerifier} />}
+              {res.attestation?.verifiability && <EvRow k="verifiability" v={res.attestation.verifiability} />}
+              {res.attestation && <EvRow k="tee attested" v={res.attestation.teeAttested ? "yes ✓" : "no"} good={res.attestation.teeAttested} />}
+              {res.requestId && <EvRow k="request id" v={res.requestId} />}
+              {res.provider && (
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
+                  <span className="label">provider</span>
+                  <a href={zgAddressUrl(res.provider)} target="_blank" rel="noopener noreferrer" className="link" style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--ink)", textDecoration: "underline", textUnderlineOffset: 2 }}>
+                    {res.provider.slice(0, 12)}… on-chain ↗
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+function EvRow({ k, v, good }: { k: string; v: string; good?: boolean }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
+      <span className="label">{k}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: good ? "var(--gain)" : "var(--ink)", overflowWrap: "anywhere", textAlign: "right" }}>{v}</span>
     </div>
   );
 }

@@ -91,6 +91,47 @@ export function parseToolCall(completion: any): Signal | null {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+export type ProviderAttestation = {
+  address: string;
+  modelId: string | null;
+  verifiability: string | null; // "TeeML" | "TeeTLS"
+  teeType: string | null; // e.g. "TDX"
+  teeVerifier: string | null; // e.g. "dstack"
+  teeAttested: boolean;
+  trustMode: string | null;
+  providerName: string | null;
+};
+
+// Fetch a serving provider's attestation record from the 0G router registry
+// (GET /providers). This is 0G's own data, not ours — it states the provider's
+// TEE type, attestation framework, and verifiability, so the "verified" claim
+// is backed by an independent, reproducible source.
+export async function providerAttestation(address: string): Promise<ProviderAttestation | null> {
+  try {
+    const res = await fetch(`${ZG_BASE_URL}/providers`, {
+      headers: { Authorization: `Bearer ${(process.env.ZG_API_KEY || "").trim()}` },
+    });
+    if (!res.ok) return null;
+    const d = (await res.json()) as { data?: Record<string, unknown>[] };
+    const p = (d.data ?? []).find(
+      (x) => String(x.address ?? "").toLowerCase() === address.toLowerCase(),
+    );
+    if (!p) return null;
+    return {
+      address: String(p.address),
+      modelId: (p.model_id as string) ?? null,
+      verifiability: (p.verifiability as string) ?? null,
+      teeType: (p.tee_type as string) ?? null,
+      teeVerifier: (p.tee_verifier as string) ?? null,
+      teeAttested: p.tee_attested === true,
+      trustMode: (p.trust_mode as string) ?? null,
+      providerName: (p.provider_name as string) ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // HTTP statuses worth retrying (transient); everything else fails fast so the
 // caller sees the real error (e.g. 401 bad key, 402 insufficient balance).
 function isTransient(status: number | undefined): boolean {
