@@ -93,6 +93,16 @@ export default function DossierPage() {
       <h1 className="text-2xl font-semibold text-neutral-200">{dossier.handle}</h1>
       <VerdictBlock stats={dossier.stats} />
 
+      {dossier.integrity.deletedTotal > 0 && (
+        <p className="text-sm text-red-400 mb-6">
+          Deleted {dossier.integrity.deletedTotal} call
+          {dossier.integrity.deletedTotal === 1 ? "" : "s"} · avg{" "}
+          {dossier.integrity.deletedAvgRetPct >= 0 ? "+" : ""}
+          {dossier.integrity.deletedAvgRetPct}% · $
+          {Math.abs(dossier.integrity.deletedHiddenLoss).toLocaleString()} hidden
+        </p>
+      )}
+
       <div className="flex gap-2 mb-6 border-b border-neutral-800">
         {TABS.map((t) => (
           <button

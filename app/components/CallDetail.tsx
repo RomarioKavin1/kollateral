@@ -10,7 +10,15 @@ interface Receipt {
   chat_id: string | null;
   tee_signature: string | null;
   provider_address: string | null;
+  verified: number;
   content_hash: string;
+}
+
+interface ReportDeletedResult {
+  deleted?: boolean;
+  alreadyDeleted?: boolean;
+  verified?: boolean;
+  error?: string;
 }
 
 function fmtDate(unixSeconds: number) {
@@ -66,11 +74,14 @@ export function CallDetail({
 }) {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [receiptMissing, setReceiptMissing] = useState(false);
+  const [reportPending, setReportPending] = useState(false);
+  const [reportResult, setReportResult] = useState<ReportDeletedResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setReceipt(null);
     setReceiptMissing(false);
+    setReportResult(null);
     fetch(`/api/receipt/${call.id}`)
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
@@ -86,6 +97,20 @@ export function CallDetail({
       cancelled = true;
     };
   }, [call.id]);
+
+  function reportDeleted() {
+    setReportPending(true);
+    setReportResult(null);
+    fetch("/api/report-deleted", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ callId: call.id }),
+    })
+      .then((r) => r.json() as Promise<ReportDeletedResult>)
+      .then((data) => setReportResult(data))
+      .catch((e) => setReportResult({ error: String(e) }))
+      .finally(() => setReportPending(false));
+  }
 
   return (
     <>
@@ -147,8 +172,17 @@ export function CallDetail({
 
           {/* Receipt strip */}
           <div className="rounded-lg border border-neutral-800 px-4 py-3 font-mono text-xs">
-            <div className="mb-2 text-neutral-500 uppercase tracking-wide text-[10px]">
-              TEE receipt
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-neutral-500 uppercase tracking-wide text-[10px]">
+                TEE receipt
+              </span>
+              {!receiptMissing && receipt && (
+                receipt.verified === 1 ? (
+                  <span className="text-green-500">TEE-verified ✓</span>
+                ) : (
+                  <span className="text-neutral-500">unverified on this provider</span>
+                )
+              )}
             </div>
             {receiptMissing ? (
               <div className="text-neutral-500">No receipt available for this call.</div>
@@ -174,6 +208,30 @@ export function CallDetail({
             >
               verify →
             </a>
+          </div>
+
+          {/* Report deleted */}
+          <div className="rounded-lg border border-neutral-800 px-4 py-3 text-sm">
+            <button
+              onClick={reportDeleted}
+              disabled={reportPending || call.deleted_at != null}
+              className="text-neutral-300 hover:underline disabled:text-neutral-600 disabled:no-underline"
+            >
+              {call.deleted_at != null
+                ? "Reported deleted"
+                : reportPending
+                  ? "Checking…"
+                  : "Report deleted"}
+            </button>
+            {reportResult && (
+              <div className="mt-2 text-xs text-neutral-400">
+                {reportResult.error
+                  ? `Check failed: ${reportResult.error}`
+                  : `deleted: ${String(reportResult.deleted)}${
+                      reportResult.alreadyDeleted ? " (already flagged)" : ""
+                    }`}
+              </div>
+            )}
           </div>
 
           <FadeTicket call={call} />
