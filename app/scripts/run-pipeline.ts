@@ -6,6 +6,9 @@ import { TOKENS } from "../lib/tokens"; // symbol->address map seeded for the de
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+// Publish threshold is env-tunable because model confidence calibration varies:
+// the mainnet DeepSeek model reaches 0.9+, the smaller testnet model caps ~0.8.
+const CONF_THRESHOLD = Number(process.env.ZG_CONF_THRESHOLD ?? "0.85");
 
 export async function runPipeline(handle: string) {
   const db = getDb();
@@ -35,7 +38,7 @@ export async function runPipeline(handle: string) {
     // Models often emit the cashtag form ("$PEPE") or extra whitespace; strip to
     // the bare symbol for both the TOKENS lookup and what we store/display.
     const symbol = s.asset_symbol ? s.asset_symbol.replace(/^\$/, "").trim().toUpperCase() : null;
-    const isSignal = s.template !== "NOT_A_SIGNAL" && s.confidence >= 0.85 && !!symbol;
+    const isSignal = s.template !== "NOT_A_SIGNAL" && s.confidence >= CONF_THRESHOLD && !!symbol;
     const template = isSignal ? s.template : "AMBIGUOUS";
     const addr = symbol ? TOKENS[symbol] ?? null : null;
     const expiry = p.posted_at + (s.expiry_days ?? DEFAULT_EXPIRY[s.template] ?? 30) * 86400;
