@@ -158,21 +158,24 @@ export function CallTweet({
           </div>
         )}
 
-        {/* report-deletion confirm */}
+        {/* report-deletion confirm — floating popover anchored to the button */}
         {reportOpen && !deleted && (
-          <div className="report-confirm">
-            <div className="label" style={{ marginBottom: 6 }}>// report a deletion</div>
-            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
-              You&apos;re about to report this call&apos;s tweet as deleted. We verify it against X before flagging, false reports are rejected and nothing is hidden.
-            </p>
-            <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
-              <button className="rc-btn" onClick={() => { setReportOpen(false); setReportMsg(null); }}>Cancel</button>
-              <button className="rc-btn rc-confirm" disabled={reportPending} onClick={submitReport}>
-                {reportPending ? "checking X…" : "Report deletion"}
-              </button>
-              {reportMsg && <span className="label" style={{ color: "var(--loss)" }}>{reportMsg}</span>}
+          <>
+            <div className="report-scrim" onClick={() => { setReportOpen(false); setReportMsg(null); }} />
+            <div className="report-confirm" role="dialog" aria-label="Report a deletion">
+              <div className="label" style={{ marginBottom: 8 }}>// report a deletion</div>
+              <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.55, margin: 0 }}>
+                You&apos;re about to report this call&apos;s tweet as deleted. We verify it against X first, false reports are rejected and nothing is hidden.
+              </p>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className="rc-btn" onClick={() => { setReportOpen(false); setReportMsg(null); }}>Cancel</button>
+                <button className="rc-btn rc-confirm" disabled={reportPending} onClick={submitReport}>
+                  {reportPending ? "checking X…" : "Report deletion"}
+                </button>
+              </div>
+              {reportMsg && <div className="label" style={{ color: "var(--loss)", marginTop: 10, lineHeight: 1.5 }}>{reportMsg}</div>}
             </div>
-          </div>
+          </>
         )}
 
         {/* the tweet */}

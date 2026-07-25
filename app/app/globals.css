@@ -227,6 +227,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ---- terminal: twitter-style call cards ---- */
 .tweet {
+  position: relative;
   display: flex;
   gap: 14px;
   padding: 18px 20px;
@@ -272,11 +273,21 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius);
 }
 .db-mark { font-family: var(--font-mono), monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--loss); }
-/* report-deletion confirm */
+/* report-deletion confirm — floating popover, does not reflow the card */
+.report-scrim { position: absolute; inset: 0; z-index: 15; }
 .report-confirm {
-  margin-top: 10px; padding: 14px 16px;
-  border: 1px solid var(--line-strong); background: var(--bg-2); border-radius: var(--radius);
-  animation: rise 0.3s var(--ease-out-quart) both;
+  position: absolute; top: 44px; right: 16px; z-index: 16;
+  width: min(320px, calc(100% - 32px));
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong); background: var(--surface); border-radius: var(--radius);
+  box-shadow: 0 14px 36px color-mix(in oklch, var(--ink) 18%, transparent);
+  animation: rise 0.2s var(--ease-out-quart) both;
+}
+.report-confirm::before {
+  content: ""; position: absolute; top: -6px; right: 26px;
+  width: 10px; height: 10px; background: var(--surface);
+  border-left: 1px solid var(--line-strong); border-top: 1px solid var(--line-strong);
+  transform: rotate(45deg);
 }
 .rc-btn {
   font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
