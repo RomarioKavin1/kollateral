@@ -155,17 +155,20 @@ export function CallTweet({
                 ? "signature recovers to the provider's on-chain TEE signer"
                 : "TeeTLS provider: attested at the transport layer, no per-response signature"}
             </div>
-            {ai.provider && (
-              <a
-                href={zgAddressUrl(ai.provider)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="label"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, color: "var(--ink)", borderTop: "1px solid var(--line)", paddingTop: 10, width: "100%" }}
-              >
-                <span className="proof-dot" /> look up this provider on the 0G explorer ↗
-              </a>
-            )}
+            <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <VerifyButton callId={call.call_id} />
+              {ai.provider && (
+                <a
+                  href={zgAddressUrl(ai.provider)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="label"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--ink)" }}
+                >
+                  <span className="proof-dot" /> look up this provider on the 0G explorer ↗
+                </a>
+              )}
+            </div>
           </div>
         )}
 
@@ -195,6 +198,51 @@ export function CallTweet({
         {children}
       </div>
     </article>
+  );
+}
+
+type VerifyResult = { status: "verified" | "unavailable" | "failed"; verified: boolean; signer: string | null; detail: string };
+
+// Runs 0G's own verification (broker.processResponse) live, via /api/verify.
+function VerifyButton({ callId }: { callId: number }) {
+  const [state, setState] = useState<"idle" | "loading" | "done">("idle");
+  const [res, setRes] = useState<VerifyResult | null>(null);
+
+  async function run() {
+    setState("loading");
+    setRes(null);
+    try {
+      const r = await fetch(`/api/verify/${callId}`);
+      setRes((await r.json()) as VerifyResult);
+    } catch {
+      setRes({ status: "unavailable", verified: false, signer: null, detail: "verification request failed" });
+    }
+    setState("done");
+  }
+
+  const color =
+    res?.status === "verified" ? "var(--gain)" : res?.status === "failed" ? "var(--loss)" : "var(--muted)";
+  const mark = res?.status === "verified" ? "✓ verified" : res?.status === "failed" ? "✗ failed" : "⚠ unavailable";
+
+  return (
+    <div>
+      <button className={`proof-badge ${state === "loading" ? "" : ""}`} onClick={run} disabled={state === "loading"}>
+        <span className="proof-dot" />
+        {state === "loading" ? "verifying against 0G…" : "verify this inference now"}
+      </button>
+      {state === "done" && res && (
+        <div className="label" style={{ marginTop: 8, color, lineHeight: 1.5 }}>
+          {mark} · {res.detail}
+          {res.signer && (
+            <div style={{ marginTop: 4 }}>
+              <a href={zgAddressUrl(res.signer)} target="_blank" rel="noopener noreferrer" className="link" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "var(--ink)" }}>
+                recovered signer {res.signer.slice(0, 10)}… ↗
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
