@@ -1,5 +1,6 @@
 import { getDb } from "./db";
 import { NOTIONAL, callPnl, dossierStats } from "./score";
+import { computeInsights, type CreatorInsights } from "./insights";
 
 interface CallRow {
   post_id: number;
@@ -74,6 +75,7 @@ export interface Dossier {
   handle: string;
   stats: ReturnType<typeof dossierStats>;
   integrity: Integrity;
+  insights: CreatorInsights;
   calls: DossierCall[];
   saidVsDid: SaidVsDid;
 }
@@ -218,7 +220,20 @@ export function buildDossier(handle: string): Dossier | null {
     deletedHiddenLoss, // negative USD they deleted after the fact
   };
 
-  return { handle: influencer.handle, stats, integrity, calls, saidVsDid };
+  const insights = computeInsights(
+    calls.map((c) => ({
+      asset_symbol: c.asset_symbol,
+      direction: c.direction,
+      retPct: c.retPct,
+      url: c.url,
+      posted_at: c.posted_at,
+      deleted_at: c.deleted_at,
+    })),
+    // distinct CALLS contradicted (a call can match several wallet sells)
+    new Set(saidVsDid.cases.map((c) => c.call.url)).size
+  );
+
+  return { handle: influencer.handle, stats, integrity, insights, calls, saidVsDid };
 }
 
 interface ContradictionRow {

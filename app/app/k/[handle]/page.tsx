@@ -103,6 +103,54 @@ export default function DossierPage() {
         </p>
       )}
 
+      {dossier.insights.scoredCalls > 0 && (
+        <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <div className="text-neutral-500 text-xs uppercase tracking-wide">Wallet contradicts</div>
+            <div className="text-neutral-100 text-lg">{dossier.insights.contradictionRate}% of calls</div>
+          </div>
+          <div>
+            <div className="text-neutral-500 text-xs uppercase tracking-wide">Direction</div>
+            <div className="text-neutral-100 text-lg">{dossier.insights.longPct}% long</div>
+          </div>
+          <div>
+            <div className="text-neutral-500 text-xs uppercase tracking-wide">Cadence</div>
+            <div className="text-neutral-100 text-lg">{dossier.insights.callsPerWeek}/wk</div>
+          </div>
+          <div>
+            <div className="text-neutral-500 text-xs uppercase tracking-wide">Calls scored</div>
+            <div className="text-neutral-100 text-lg">
+              {dossier.insights.scoredCalls}/{dossier.insights.totalCalls}
+            </div>
+          </div>
+          {dossier.insights.bestCall && (
+            <div className="col-span-2">
+              <div className="text-neutral-500 text-xs uppercase tracking-wide">Best / worst call</div>
+              <div className="text-sm">
+                <span className="text-green-400">
+                  {dossier.insights.bestCall.asset} +{dossier.insights.bestCall.retPct}%
+                </span>{" "}
+                /{" "}
+                <span className="text-red-400">
+                  {dossier.insights.worstCall!.asset} {dossier.insights.worstCall!.retPct}%
+                </span>
+              </div>
+            </div>
+          )}
+          {dossier.insights.byToken.length > 0 && (
+            <div className="col-span-2">
+              <div className="text-neutral-500 text-xs uppercase tracking-wide">Per-token (avg %)</div>
+              <div className="text-sm text-neutral-300">
+                {dossier.insights.byToken
+                  .slice(0, 4)
+                  .map((t) => `${t.asset} ${t.avgRetPct >= 0 ? "+" : ""}${t.avgRetPct}% (${t.winRate}%W)`)
+                  .join(" · ")}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-2 mb-6 border-b border-neutral-800">
         {TABS.map((t) => (
           <button
