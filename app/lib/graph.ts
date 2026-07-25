@@ -64,14 +64,17 @@ export async function priceAt(token: string, tsSec: number): Promise<{ price: nu
   // across pages; sort defensively before pickCandleClose relies on ordering.
   candles.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
   const price = pickCandleClose(candles, tsSec);
-  if (price != null) return { price, source: "pinax_ohlc" };
+  // A candle close of 0 (or negative, from bad data) is not a usable price —
+  // treat it as unknown rather than letting it flow into callPnl and divide
+  // by zero. Fall through to the subgraph fallback below, then to null.
+  if (price != null && price > 0) return { price, source: "pinax_ohlc" };
   // Task 11: subgraph fallback, wired here. Only fires when Pinax OHLC has no
   // covering candle (thin/new pool, or a gap before Pinax's OHLC history
   // starts) and GRAPH_STUDIO_KEY is configured; otherwise a no-op no-network
   // null passthrough, so this is harmless when unused.
   if (process.env.GRAPH_STUDIO_KEY) {
     const subgraphPrice = await subgraphPriceAt(token, tsSec);
-    if (subgraphPrice != null) return { price: subgraphPrice, source: "uniswap_v3_subgraph" };
+    if (subgraphPrice != null && subgraphPrice > 0) return { price: subgraphPrice, source: "uniswap_v3_subgraph" };
   }
   return null;
 }

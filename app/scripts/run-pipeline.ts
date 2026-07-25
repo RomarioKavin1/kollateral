@@ -27,6 +27,7 @@ export async function runPipeline(handle: string) {
     const template = isSignal ? s.template : "AMBIGUOUS";
     const addr = s.asset_symbol ? TOKENS[s.asset_symbol.toUpperCase()] ?? null : null;
     const expiry = p.posted_at + (s.expiry_days ?? DEFAULT_EXPIRY[s.template] ?? 30) * 86400;
+    const now = Math.floor(Date.now() / 1000);
 
     const r = db
       .prepare(
@@ -41,7 +42,7 @@ export async function runPipeline(handle: string) {
         s.direction ?? "long",
         expiry,
         s.confidence,
-        isSignal ? (addr ? "open" : "unpriceable") : "ambiguous"
+        isSignal ? (addr ? (expiry <= now ? "settled" : "open") : "unpriceable") : "ambiguous"
       );
 
     db.prepare(
