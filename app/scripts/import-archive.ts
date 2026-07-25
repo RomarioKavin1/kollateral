@@ -76,3 +76,16 @@ export function importArchive(handle: string, jsonPath: string) {
   importRows(rows);
   return { inserted, skipped, malformed };
 }
+
+// CLI shim: `tsx scripts/import-archive.ts <handle> <jsonPath>` ingests a
+// scraped archive into the posts table (creating the influencer if needed).
+if (require.main === module) {
+  const handle = process.argv[2];
+  const jsonPath = process.argv[3];
+  if (!handle || !jsonPath) {
+    console.error("usage: tsx scripts/import-archive.ts <handle> <jsonPath>");
+    process.exit(1);
+  }
+  const r = importArchive(handle, jsonPath);
+  console.log(`@${handle}: imported ${r.inserted} new, skipped ${r.skipped}, malformed ${r.malformed}`);
+}
