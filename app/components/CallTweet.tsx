@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { isRealTweetUrl, resolveTweetUrl } from "@/lib/xlink";
+import { zgAddressUrl } from "@/lib/zgexplorer";
 import type { FeedCall } from "@/app/api/feed/route";
 
 function timeAgo(unixSec: number): string {
@@ -143,7 +144,7 @@ export function CallTweet({
             <div className="label" style={{ marginBottom: 10 }}>// 0G compute · verifiable inference</div>
             <ProofRow k="model" v={ai.model} />
             <ProofRow k="classified" v={`${ai.aiTemplate ?? call.template}${ai.aiConfidence != null ? ` (${Math.round(ai.aiConfidence * 100)}%)` : ""}`} />
-            <ProofRow k="provider" v={trunc(ai.provider, 10)} mono />
+            <ProofRow k="provider" v={trunc(ai.provider, 10)} mono href={ai.provider ? zgAddressUrl(ai.provider) : undefined} />
             <ProofRow k="chat id" v={trunc(ai.chatId, 12)} mono />
             <ProofRow k="request id" v={trunc(ai.requestId, 10)} mono />
             <ProofRow k="tee signature" v={receipt ? (trunc(receipt.tee_signature, 12) ?? "none on this provider") : "…"} mono />
@@ -154,6 +155,17 @@ export function CallTweet({
                 ? "signature recovers to the provider's on-chain TEE signer"
                 : "TeeTLS provider: attested at the transport layer, no per-response signature"}
             </div>
+            {ai.provider && (
+              <a
+                href={zgAddressUrl(ai.provider)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="label"
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 12, color: "var(--ink)", borderTop: "1px solid var(--line)", paddingTop: 10, width: "100%" }}
+              >
+                <span className="proof-dot" /> look up this provider on the 0G explorer ↗
+              </a>
+            )}
           </div>
         )}
 
@@ -186,13 +198,24 @@ export function CallTweet({
   );
 }
 
-function ProofRow({ k, v, mono }: { k: string; v: ReactNode; mono?: boolean }) {
+function ProofRow({ k, v, mono, href }: { k: string; v: ReactNode; mono?: boolean; href?: string }) {
+  const valueStyle: React.CSSProperties = {
+    fontFamily: mono ? "var(--font-mono)" : undefined,
+    fontSize: 12,
+    color: "var(--ink)",
+    textAlign: "right",
+    overflowWrap: "anywhere",
+  };
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: 16, padding: "5px 0", borderBottom: "1px solid var(--line)" }}>
       <span className="label">{k}</span>
-      <span style={{ fontFamily: mono ? "var(--font-mono)" : undefined, fontSize: 12, color: "var(--ink)", textAlign: "right", overflowWrap: "anywhere" }}>
-        {v ?? "—"}
-      </span>
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" className="link" style={{ ...valueStyle, textDecoration: "underline", textUnderlineOffset: 2 }}>
+          {v ?? "—"} ↗
+        </a>
+      ) : (
+        <span style={valueStyle}>{v ?? "—"}</span>
+      )}
     </div>
   );
 }
