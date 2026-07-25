@@ -77,12 +77,12 @@ void main(){
   float levels = 4.0;
   float q2 = floor(field*levels + thr) / levels;
 
-  // forensic palette: near-black -> bone, with a whisper of phosphor in mids
-  vec3 bg   = vec3(0.075, 0.082, 0.098);
-  vec3 ink  = vec3(0.93, 0.94, 0.96);
-  vec3 col  = mix(bg, ink, q2);
-  col += vec3(0.10, 0.09, 0.02) * q2 * (1.0 - q2) * 1.6;   // subtle warm phosphor in midtones
-  col += lens * 0.05;                                       // faint bloom under pointer
+  // light forensic palette: dark grain forms emerge on bone-white paper
+  vec3 paper = vec3(0.965, 0.965, 0.972);
+  vec3 ink   = vec3(0.135, 0.145, 0.165);
+  vec3 col   = mix(paper, ink, q2);
+  col = mix(col, vec3(0.62, 0.80, 0.28), q2 * (1.0 - q2) * 0.16);  // faint lime whisper in the mids
+  col -= lens * 0.05;                                              // pointer deepens the grain
 
   gl_FragColor = vec4(col, 1.0);
 }

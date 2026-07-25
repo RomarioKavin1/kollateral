@@ -3,12 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { InteractiveDither } from "@/components/InteractiveDither";
+import { DitherArt } from "@/components/DitherArt";
 import { CreatorFeed } from "@/components/CreatorFeed";
 
 const EVIDENCE = [
-  { n: "01", k: "BACKTEST", t: "Every call, priced.", d: "We scrape their public calls and mark each one against real DEX prices. $1,000 per call, versus just holding ETH. The verdict is arithmetic." },
-  { n: "02", k: "SAID / DID", t: "Their wallet betrays them.", d: "We cross-reference each call against the caller's own on-chain wallet. Said accumulate, sold four hours later. Cited to the transaction." },
-  { n: "03", k: "FADE", t: "Trade against the noise.", d: "Copy the honest, fade the rest. Auto-executed from a self-custody vault, capped per creator. The most reliable alpha is the other side of a bad call." },
+  { n: "01", k: "BACKTEST", t: "Every call, priced.", shape: "signal" as const, d: "We scrape their public calls and mark each one against real DEX prices. $1,000 per call, versus just holding ETH. The verdict is arithmetic." },
+  { n: "02", k: "SAID / DID", t: "Their wallet betrays them.", shape: "loop" as const, d: "We cross-reference each call against the caller's own on-chain wallet. Said accumulate, sold four hours later. Cited to the transaction." },
+  { n: "03", k: "FADE", t: "Trade against the noise.", shape: "arrows" as const, d: "Copy the honest, fade the rest. Auto-executed from a self-custody vault, capped per creator. The most reliable alpha is the other side of a bad call." },
 ];
 
 export default function HomePage() {
@@ -24,7 +25,7 @@ export default function HomePage() {
   return (
     <main>
       {/* ---- HERO ---- */}
-      <section className="relative overflow-hidden" style={{ minHeight: "min(92vh, 900px)" }}>
+      <section className="relative overflow-hidden" style={{ minHeight: "min(92vh, 900px)", borderBottom: "1px solid var(--line)" }}>
         <InteractiveDither className="absolute inset-0 h-full w-full" />
         {/* light legibility scrim: keep the left readable, let the grain breathe */}
         <div
@@ -32,7 +33,7 @@ export default function HomePage() {
           style={{
             pointerEvents: "none",
             background:
-              "linear-gradient(90deg, color-mix(in oklch, var(--bg) 80%, transparent) 0%, color-mix(in oklch, var(--bg) 40%, transparent) 34%, transparent 66%), linear-gradient(0deg, var(--bg), transparent 26%), linear-gradient(180deg, color-mix(in oklch, var(--bg) 40%, transparent), transparent 14%)",
+              "linear-gradient(90deg, color-mix(in oklch, var(--bg) 82%, transparent) 0%, color-mix(in oklch, var(--bg) 42%, transparent) 34%, transparent 68%), linear-gradient(0deg, var(--bg), transparent 26%), linear-gradient(180deg, color-mix(in oklch, var(--bg) 45%, transparent), transparent 14%)",
           }}
         />
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-6" style={{ minHeight: "min(92vh, 900px)" }}>
@@ -40,32 +41,17 @@ export default function HomePage() {
             KOLLATERAL<span className="flick" style={{ color: "var(--signal)" }}>_</span>
           </div>
 
-          <h1
-            className="rise"
-            style={{
-              animationDelay: "80ms",
-              fontSize: "clamp(44px, 9vw, 116px)",
-              margin: "18px 0 0",
-              lineHeight: 0.94,
-            }}
-          >
+          <h1 className="rise" style={{ animationDelay: "80ms", fontSize: "clamp(44px, 9vw, 116px)", margin: "18px 0 0", lineHeight: 0.94 }}>
             THE MARKET<br />REMEMBERS.
           </h1>
 
-          <p
-            className="rise"
-            style={{ animationDelay: "180ms", maxWidth: "52ch", marginTop: 22, color: "var(--muted)", fontSize: 15 }}
-          >
+          <p className="rise" style={{ animationDelay: "180ms", maxWidth: "52ch", marginTop: 22, color: "var(--muted)", fontSize: 15 }}>
             Forensic accountability for crypto influencers. Backtest their calls,
             catch their wallets in the act, and fade the noise, automatically.
           </p>
 
-          <form
-            onSubmit={handleSubmit}
-            className="rise"
-            style={{ animationDelay: "280ms", display: "flex", gap: 8, marginTop: 34, maxWidth: 520 }}
-          >
-            <div className="panel scan" style={{ display: "flex", flex: 1, alignItems: "center", paddingLeft: 12, background: "color-mix(in oklch, var(--surface) 80%, transparent)" }}>
+          <form onSubmit={handleSubmit} className="rise" style={{ animationDelay: "280ms", display: "flex", gap: 8, marginTop: 34, maxWidth: 520 }}>
+            <div className="panel scan" style={{ display: "flex", flex: 1, alignItems: "center", paddingLeft: 12, background: "color-mix(in oklch, var(--surface) 88%, transparent)" }}>
               <span className="label" style={{ marginRight: 8 }}>@</span>
               <input
                 value={handleInput}
@@ -77,8 +63,7 @@ export default function HomePage() {
             </div>
             <button
               type="submit"
-              className="link"
-              style={{ border: "1px solid var(--line-strong)", borderRadius: "var(--radius)", padding: "0 20px", background: "var(--ink)", color: "var(--bg)", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+              style={{ border: "1px solid var(--ink)", borderRadius: "var(--radius)", padding: "0 20px", background: "var(--ink)", color: "var(--surface)", fontFamily: "var(--font-mono)", fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
             >
               Depose
             </button>
@@ -119,7 +104,10 @@ export default function HomePage() {
                 <span className="pixel" style={{ fontSize: 22, color: "var(--faint)" }}>{e.n}</span>
                 <span className="label">{e.k}</span>
               </div>
-              <h3 style={{ fontSize: 22, marginTop: 24 }}>{e.t}</h3>
+              <div style={{ marginTop: 20, height: 150, background: "var(--dark)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                <DitherArt shape={e.shape} invert gap={4} className="h-full w-full" />
+              </div>
+              <h3 style={{ fontSize: 22, marginTop: 22 }}>{e.t}</h3>
               <p style={{ marginTop: 12, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.7 }}>{e.d}</p>
             </div>
           ))}

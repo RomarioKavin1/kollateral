@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
-/* KOLlateral — dither / 1-bit forensic monochrome. Committed monochrome dark,
-   grayscale dither as the surface voice, red/green only for money. See DESIGN.md. */
+/* KOLlateral — dither / 1-bit forensic. LIGHT: bone-white paper, near-black ink,
+   halftone dither as the surface voice, red/green only for money. Dark tokens are
+   kept (--dark*) for the high-contrast dithered illustration blocks. */
 :root {
-  --bg: oklch(0.15 0.006 265);
-  --bg-2: oklch(0.13 0.006 265);
-  --surface: oklch(0.19 0.007 265);
-  --surface-2: oklch(0.22 0.008 265);
-  --line: oklch(0.30 0.008 265);
-  --line-strong: oklch(0.40 0.008 265);
-  --ink: oklch(0.94 0.004 265);
-  --muted: oklch(0.62 0.006 265);
-  --faint: oklch(0.45 0.006 265);
-  --loss: oklch(0.63 0.17 25);
-  --gain: oklch(0.74 0.14 150);
-  --signal: oklch(0.86 0.10 90); /* pale phosphor, used sparingly */
+  --bg: oklch(0.975 0.001 250);
+  --bg-2: oklch(0.955 0.0015 250);
+  --surface: oklch(0.995 0.0005 250);
+  --surface-2: oklch(0.94 0.002 250);
+  --line: oklch(0.88 0.003 250);
+  --line-strong: oklch(0.74 0.005 250);
+  --ink: oklch(0.20 0.012 265);
+  --muted: oklch(0.46 0.009 265);
+  --faint: oklch(0.62 0.006 265);
+  --loss: oklch(0.53 0.20 26);
+  --gain: oklch(0.52 0.15 152);
+  --signal: oklch(0.80 0.20 132); /* lime phosphor accent, used sparingly */
+  /* dark inversion for dithered illustration blocks / footer */
+  --dark: oklch(0.17 0.01 265);
+  --dark-ink: oklch(0.96 0.003 250);
   --radius: 3px;
 }
 
@@ -44,7 +48,7 @@ body {
   font-size: 14px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  background-image: radial-gradient(oklch(1 0 0 / 0.014) 0.5px, transparent 0.5px);
+  background-image: radial-gradient(oklch(0 0 0 / 0.028) 0.5px, transparent 0.6px);
   background-size: 3px 3px;
 }
 
@@ -53,8 +57,8 @@ h1, h2, h3, h4 {
   font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; text-wrap: balance;
 }
 
-::selection { background: var(--signal); color: var(--bg); }
-:focus-visible { outline: 1px solid var(--signal); outline-offset: 2px; }
+::selection { background: var(--signal); color: var(--dark); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---- terminal grammar ---- */
 .label {
@@ -69,7 +73,7 @@ h1, h2, h3, h4 {
 
 /* ---- dither texture utilities ---- */
 .dither {
-  background-image: radial-gradient(oklch(1 0 0 / 0.5) 0.5px, transparent 0.6px);
+  background-image: radial-gradient(oklch(0 0 0 / 0.5) 0.5px, transparent 0.6px);
   background-size: 4px 4px;
 }
 .scan { position: relative; }
@@ -113,7 +117,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
   background:
-    radial-gradient(oklch(1 0 0 / 0.28) 0.5px, transparent 0.6px) 0 0 / 3px 3px,
+    radial-gradient(oklch(0 0 0 / 0.24) 0.5px, transparent 0.6px) 0 0 / 3px 3px,
     var(--bg);
   color: var(--ink); font-size: 15px; letter-spacing: 0.04em;
   cursor: pointer;
