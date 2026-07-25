@@ -13,4 +13,9 @@ describe("parseToolCall", () => {
   it("returns null on garbage", () => {
     expect(parseToolCall({ choices: [{ message: {} }] })).toBeNull();
   });
+  it("returns null on malformed JSON arguments", () => {
+    const completion = { choices: [{ message: { tool_calls: [{ function: {
+      name: "emit_trade_signal", arguments: "{truncated" } }] } }] };
+    expect(parseToolCall(completion)).toBeNull();
+  });
 });

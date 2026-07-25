@@ -45,7 +45,13 @@ Sarcasm, memes, questions, retrospectives => NOT_A_SIGNAL. Be conservative: when
 export function parseToolCall(completion: any): Signal | null {
   const tc = completion?.choices?.[0]?.message?.tool_calls?.[0];
   if (!tc || tc.function?.name !== "emit_trade_signal") return null;
-  const parsed = SignalSchema.safeParse(JSON.parse(tc.function.arguments));
+  let args: unknown;
+  try {
+    args = JSON.parse(tc.function.arguments);
+  } catch {
+    return null;
+  }
+  const parsed = SignalSchema.safeParse(args);
   return parsed.success ? parsed.data : null;
 }
 
