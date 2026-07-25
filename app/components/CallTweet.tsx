@@ -131,7 +131,7 @@ export function CallTweet({
         {ai && (
           <button className={`proof-badge ${proofOpen ? "proof-open" : ""}`} onClick={() => setProofOpen((v) => !v)} aria-expanded={proofOpen}>
             <span className="proof-dot" />
-            {ai.hasSignature ? "TEE-signed inference" : "0G inference"}
+            {ai.verified ? "TEE-verified inference" : "0G inference"}
             <span style={{ color: "var(--faint)" }}>· {ai.model ?? "0g-compute"}</span>
             {ai.verified ? <span style={{ color: "var(--gain)" }}>· verified ✓</span> : null}
             <span style={{ color: "var(--ink)", fontWeight: 600, marginLeft: 2 }}>{proofOpen ? "hide proof" : "show full proof"}</span>
@@ -152,7 +152,7 @@ export function CallTweet({
             {ai.costA0gi && <ProofRow k="cost" v={`${(Number(ai.costA0gi) / 1e18).toFixed(6)} A0GI`} mono />}
             <div className="label" style={{ marginTop: 10, color: ai.verified ? "var(--gain)" : "var(--muted)" }}>
               {ai.verified
-                ? "signature recovers to the provider's on-chain TEE signer"
+                ? "on-chain TEE signature verified by the 0G router (verify_tee)"
                 : "transport-layer (TeeTLS) attestation via the 0G router, no per-response signature exposed"}
             </div>
             <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
@@ -201,7 +201,7 @@ export function CallTweet({
   );
 }
 
-type VerifyResult = { status: "verified" | "unavailable" | "failed"; verified: boolean; signer: string | null; detail: string };
+type VerifyResult = { status: "verified" | "unavailable" | "failed"; verified: boolean; provider?: string | null; detail: string };
 
 // Runs 0G's own verification (broker.processResponse) live, via /api/verify.
 function VerifyButton({ callId }: { callId: number }) {
@@ -215,7 +215,7 @@ function VerifyButton({ callId }: { callId: number }) {
       const r = await fetch(`/api/verify/${callId}`);
       setRes((await r.json()) as VerifyResult);
     } catch {
-      setRes({ status: "unavailable", verified: false, signer: null, detail: "verification request failed" });
+      setRes({ status: "unavailable", verified: false, provider: null, detail: "verification request failed" });
     }
     setState("done");
   }
@@ -233,10 +233,10 @@ function VerifyButton({ callId }: { callId: number }) {
       {state === "done" && res && (
         <div className="label" style={{ marginTop: 8, color, lineHeight: 1.5 }}>
           {mark} · {res.detail}
-          {res.signer && (
+          {res.verified && res.provider && (
             <div style={{ marginTop: 4 }}>
-              <a href={zgAddressUrl(res.signer)} target="_blank" rel="noopener noreferrer" className="link" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "var(--ink)" }}>
-                recovered signer {res.signer.slice(0, 10)}… ↗
+              <a href={zgAddressUrl(res.provider)} target="_blank" rel="noopener noreferrer" className="link" style={{ textDecoration: "underline", textUnderlineOffset: 2, color: "var(--ink)" }}>
+                verified provider {res.provider.slice(0, 10)}… ↗
               </a>
             </div>
           )}

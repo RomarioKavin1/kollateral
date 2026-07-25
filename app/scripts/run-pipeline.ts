@@ -3,7 +3,6 @@ import { classifyPost } from "../lib/zg";
 import { priceAt } from "../lib/graph";
 import { DEFAULT_EXPIRY } from "../lib/signal-schema";
 import { TOKENS } from "../lib/tokens"; // symbol->address map seeded for the demo set
-import { verifyInference } from "../lib/verify";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
@@ -61,32 +60,22 @@ export async function runPipeline(handle: string) {
         isSignal ? (addr ? (expiry <= now ? "settled" : "open") : "unpriceable") : "ambiguous"
       );
 
-    const artifact = db
-      .prepare(
-        `INSERT INTO artifacts (call_id,request_json,response_json,chat_id,tee_signature,provider_address)
-         VALUES (?,?,?,?,?,?)`
-      )
-      .run(
-        r.lastInsertRowid,
-        p.content,
-        JSON.stringify(c.raw ?? {}),
-        c.chatId,
-        c.teeSignature,
-        c.providerAddress
-      );
-
-    // Cryptographically verify the 0G TEE signature (real, cost-free). Opt-in via
-    // ZG_VERIFY because it only succeeds on mainnet TeeML models — on the free
-    // testnet (TeeTLS) it returns "unavailable", so verifying every call there
-    // just adds latency. Never breaks the pipeline; stores an honest 0/1.
-    if (process.env.ZG_VERIFY === "true" && c.providerAddress && c.chatId) {
-      try {
-        const v = await verifyInference(c.providerAddress, c.chatId);
-        db.prepare("UPDATE artifacts SET verified=? WHERE id=?").run(v.verified ? 1 : 0, artifact.lastInsertRowid);
-      } catch {
-        /* verification is best-effort; leave verified=0 */
-      }
-    }
+    // The 0G router performs on-chain TEE signature verification at inference
+    // time (we request it with verify_tee:true) and returns the result in
+    // x_0g_trace.tee_verified. Store it directly — an honest 0/1. TeeTLS models
+    // return null (transport-attested, nothing to verify) and stay 0.
+    db.prepare(
+      `INSERT INTO artifacts (call_id,request_json,response_json,chat_id,tee_signature,provider_address,verified)
+       VALUES (?,?,?,?,?,?,?)`
+    ).run(
+      r.lastInsertRowid,
+      p.content,
+      JSON.stringify(c.raw ?? {}),
+      c.chatId,
+      c.teeSignature,
+      c.providerAddress,
+      c.teeVerified ? 1 : 0
+    );
 
     if (isSignal && addr) {
       try {

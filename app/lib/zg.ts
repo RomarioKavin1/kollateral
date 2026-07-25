@@ -7,6 +7,10 @@ export type Classification = {
   chatId: string | null;
   teeSignature: string | null;
   providerAddress: string | null;
+  // 0G router's on-chain TEE verification result (from x_0g_trace.tee_verified
+  // when the request opts in with verify_tee:true). null when not requested or
+  // the provider is TeeTLS (no per-response signature).
+  teeVerified: boolean | null;
 };
 
 // Endpoint + default model are env-configurable so the same code runs against
@@ -21,7 +25,13 @@ const ZG_DEFAULT_MODEL = process.env.ZG_MODEL || "deepseek-ai/DeepSeek-V3.1";
 let client: OpenAI | null = null;
 function getClient(): OpenAI {
   if (!client) {
-    client = new OpenAI({ baseURL: ZG_BASE_URL, apiKey: (process.env.ZG_API_KEY || "").trim() });
+    client = new OpenAI({
+      baseURL: ZG_BASE_URL,
+      apiKey: (process.env.ZG_API_KEY || "").trim(),
+      // Pin to a TEE-backed (private) provider so verify_tee can produce an
+      // on-chain-verified response on models that support it.
+      defaultHeaders: { "X-0G-Provider-Trust-Mode": "private" },
+    });
   }
   return client;
 }
@@ -98,17 +108,20 @@ export async function classifyPost(
     let data: OpenAI.Chat.ChatCompletion;
     let response: Response;
     try {
-      const res = await getClient()
-        .chat.completions.create({
-          model,
-          tools: [TOOL],
-          tool_choice: { type: "function", function: { name: "emit_trade_signal" } },
-          messages: [
-            { role: "system", content: SYSTEM },
-            { role: "user", content: `Posted at: ${postedAtIso}\n\n${text}` },
-          ],
-        })
-        .withResponse();
+      // verify_tee is a 0G router extension (not in the OpenAI types): it asks
+      // the router to perform on-chain TEE signature verification and return
+      // the result in x_0g_trace.tee_verified.
+      const params = {
+        model,
+        tools: [TOOL],
+        tool_choice: { type: "function", function: { name: "emit_trade_signal" } },
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: `Posted at: ${postedAtIso}\n\n${text}` },
+        ],
+      } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & { verify_tee?: boolean };
+      params.verify_tee = true;
+      const res = await getClient().chat.completions.create(params).withResponse();
       data = res.data;
       response = res.response;
     } catch (err) {
@@ -122,6 +135,8 @@ export async function classifyPost(
       }
       throw err;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- x_0g_trace is a 0G router extension not in the OpenAI types
+    const teeVerified = (data as any)?.x_0g_trace?.tee_verified;
     const signal = parseToolCall(data);
     if (signal) {
       return {
@@ -134,10 +149,11 @@ export async function classifyPost(
         // `x_0g_trace.provider`) — an on-chain provider address, not a TEE
         // attestation. We surface it as-is; no fabrication if it's ever absent.
         providerAddress: response.headers.get("x-provider") ?? null,
+        teeVerified: typeof teeVerified === "boolean" ? teeVerified : null,
       };
     }
   }
   // Reached the retry cap without a parseable tool call: treat as "not a signal"
   // rather than an error (the model answered, just not usefully).
-  return { signal: null, raw: null, chatId: null, teeSignature: null, providerAddress: null };
+  return { signal: null, raw: null, chatId: null, teeSignature: null, providerAddress: null, teeVerified: null };
 }
