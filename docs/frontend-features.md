@@ -44,6 +44,7 @@
 - **Verdict block:** headline % ($1,000-per-call vs actual), the two dollar sentences (followed-every-call vs held-ETH), settled count, win rate.
 - **Equity curve:** cumulative call P&L vs cumulative ETH benchmark over the call dates.
 - **Stat strip:** win rate · call count · deleted-call count · (avg hold optional).
+- **Integrity stat (NEW):** from `dossier.integrity` — surface "Deleted N calls, avg X%, $Y of losses hidden" (`deletedTotal`, `deletedScored`, `deletedAvgRetPct`, `deletedHiddenLoss`). Deleted calls still count in the P&L; this makes the deletion behavior visibly damning.
 - **Tabs:** `Calls` | `Said vs. Did`.
 - **Calls tab — ledger table:** per row → post text (links to the original X post, new tab), asset symbol, direction (long/short), entry→latest price, return % (colored by sign), badges (🗑️ deleted / ⏳ open / ✓ has-receipt). **Filters:** All / Deleted / Ambiguous.
 - **Said vs. Did tab:** dual list (posts vs wallet swaps) on a shared time order, contradiction rows linking a post to a wallet sell, case card per contradiction (post + tx link + "sold Xh after"), attribution disclaimer line.
@@ -62,8 +63,9 @@
 **Features**
 - Archived post render: text, timestamp, link to original X post.
 - Parsed-signal box: template · asset · direction · expiry · confidence.
-- **Receipt strip:** content hash · 0G chatId · TEE signature · provider address · "verify →" link (opens raw artifact JSON).
+- **Receipt strip:** content hash · 0G chatId · TEE signature · provider address · **verified badge** (NEW — from `receipt.verified`: green "TEE-verified ✓" on mainnet/TeeML, honest "unverified on this provider" on testnet/TeeTLS; never fakes) · "verify →" link.
 - Deleted banner when the post was deleted.
+- **"Report deleted" button (NEW):** POST `/api/report-deleted` `{callId}` → verifies the tweet is actually gone on X before marking it (rejects false reports). On success the 🗑️ badge + integrity stat update.
 - **FADE / FOLLOW ticket** embedded at the bottom (see Page 4 flow) — this is the swap entry point today.
 
 **States:** loading receipt · receipt missing (404 → placeholders, no crash) · deleted.
@@ -97,9 +99,12 @@
 
 **States:** unclaimed · claim-pending (nonce posted, awaiting verify) · claimed.
 
-**New backend needed:** `POST /api/claim` (issue + verify nonce), `POST /api/stake`. Escrow can be simulated or a simple contract. A `stakes` table (or reuse) — not in `schema.sql` yet.
+**SCOPE DECISION (locked): UI states only.** Build the *visual/flow* states, no real escrow:
+- Claim flow: nonce issue → "post this to verify" → a verify button that flips `influencers.claimed` (the tweet-check can be manual/simulated for the demo).
+- Staked-call badge: a "$X staked" visual state on call rows/cards (data can be a simple `claimed`/`staked` flag, no on-chain escrow).
+- Be honest in the pitch: "staking flow demonstrated; escrow settlement is the next step."
 
-**Scope note:** the judge flagged this as 0% built and the pitch calls staking the "kill shot." Whether to build it (functional / UI-states-only) or cut it from the pitch is an open decision.
+**Backend for UI-states scope:** minimal — a `POST /api/claim` that verifies a nonce and sets `influencers.claimed`, and a `staked` boolean (column or small table) toggled for badge rendering. No escrow contract, no `POST /api/stake` settlement.
 
 ---
 
