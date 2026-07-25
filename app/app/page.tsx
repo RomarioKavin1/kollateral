@@ -38,7 +38,7 @@ export default function HomePage() {
         />
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-6" style={{ minHeight: "min(92vh, 900px)" }}>
           <div className="pixel rise" style={{ animationDelay: "0ms", fontSize: 18, letterSpacing: "0.06em", color: "var(--ink)" }}>
-            KOLLATERAL<span className="flick" style={{ color: "var(--signal)" }}>_</span>
+            <span className="kol">KOL</span>LATERAL<span className="flick" style={{ color: "var(--ink)" }}>_</span>
           </div>
 
           <h1 className="rise" style={{ animationDelay: "80ms", fontSize: "clamp(44px, 9vw, 116px)", margin: "18px 0 0", lineHeight: 0.94 }}>
@@ -128,7 +128,7 @@ export default function HomePage() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-6" style={{ padding: "28px 24px 48px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <span className="pixel" style={{ color: "var(--faint)" }}>KOLLATERAL</span>
+        <span className="pixel" style={{ color: "var(--faint)" }}><span className="kol">KOL</span>LATERAL</span>
         <span className="label">the market remembers · numbers and citations, zero adjectives</span>
       </footer>
     </main>

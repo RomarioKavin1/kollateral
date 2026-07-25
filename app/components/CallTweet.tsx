@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { isRealTweetUrl, resolveTweetUrl } from "@/lib/xlink";
 import type { FeedCall } from "@/app/api/feed/route";
 
 function timeAgo(unixSec: number): string {
@@ -92,14 +93,14 @@ export function CallTweet({
           <span className="label">· {timeAgo(call.posted_at)}</span>
           {call.deleted_at && <span className="label" style={{ color: "var(--loss)" }}>· deleted</span>}
           <a
-            href={call.url}
+            href={resolveTweetUrl(call.url, call.handle)}
             target="_blank"
             rel="noopener noreferrer"
             className="tw-src label"
             style={{ marginLeft: "auto" }}
-            title="Open the original tweet"
+            title={isRealTweetUrl(call.url) ? "Open the original tweet" : "Documented call, open the creator's X profile"}
           >
-            original ↗
+            {isRealTweetUrl(call.url) ? "original ↗" : "on x ↗"}
           </a>
         </div>
 

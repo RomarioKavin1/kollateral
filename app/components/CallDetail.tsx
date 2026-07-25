@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveTweetUrl } from "@/lib/xlink";
 import type { DossierCall } from "@/lib/dossier";
 import { FadeTicket } from "./FadeTicket";
 
@@ -72,9 +73,11 @@ function ReceiptRow({ label, value }: { label: string; value: string | null }) {
 export function CallDetail({
   call,
   onClose,
+  handle,
 }: {
   call: DossierCall;
   onClose: () => void;
+  handle: string;
 }) {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [receiptMissing, setReceiptMissing] = useState(false);
@@ -167,7 +170,7 @@ export function CallDetail({
             <div className="mt-3 flex items-center justify-between">
               <span className="label tnum">{fmtDate(call.posted_at)}</span>
               <a
-                href={call.url}
+                href={resolveTweetUrl(call.url, handle)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="link"

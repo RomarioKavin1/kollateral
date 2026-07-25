@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { resolveTweetUrl } from "@/lib/xlink";
 import type { SaidVsDid as SaidVsDidData, SaidVsDidCase } from "@/lib/dossier";
 
 function fmtDate(unixSeconds: number) {
@@ -22,7 +23,7 @@ function truncate(s: string, n: number) {
   return s.length > n ? `${s.slice(0, n)}…` : s;
 }
 
-function CaseCard({ c, onClose }: { c: SaidVsDidCase; onClose: () => void }) {
+function CaseCard({ c, onClose, handle }: { c: SaidVsDidCase; onClose: () => void; handle: string }) {
   return (
     <>
       <div
@@ -58,7 +59,7 @@ function CaseCard({ c, onClose }: { c: SaidVsDidCase; onClose: () => void }) {
             <div className="mt-3 flex items-center justify-between">
               <span className="label tnum">{fmtDate(c.call.posted_at)}</span>
               <a
-                href={c.call.url}
+                href={resolveTweetUrl(c.call.url, handle)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="link"
@@ -108,7 +109,7 @@ function CaseCard({ c, onClose }: { c: SaidVsDidCase; onClose: () => void }) {
   );
 }
 
-export function SaidVsDid({ data }: { data: SaidVsDidData }) {
+export function SaidVsDid({ data, handle }: { data: SaidVsDidData; handle: string }) {
   const [selected, setSelected] = useState<SaidVsDidCase | null>(null);
 
   if (!data.wallet) {
@@ -179,7 +180,7 @@ export function SaidVsDid({ data }: { data: SaidVsDidData }) {
         </div>
       )}
 
-      {selected && <CaseCard c={selected} onClose={() => setSelected(null)} />}
+      {selected && <CaseCard c={selected} onClose={() => setSelected(null)} handle={handle} />}
     </div>
   );
 }

@@ -80,7 +80,7 @@ export function Header() {
       }}
     >
       <Link href="/" className="pixel" style={{ fontSize: 15, letterSpacing: "0.04em", color: "var(--ink)" }}>
-        KOLLATERAL
+        <span className="kol">KOL</span>LATERAL
       </Link>
       <nav style={{ display: "flex", gap: 20 }}>
         {[["/terminal", "Terminal"], ["/allocations", "Allocations"], ["/portfolio", "Portfolio"]].map(([href, label]) => (

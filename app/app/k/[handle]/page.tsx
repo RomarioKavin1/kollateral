@@ -9,6 +9,7 @@ import { SaidVsDid } from "@/components/SaidVsDid";
 import { EquityCurveChart } from "@/components/DitheredChart";
 import { DitherArt } from "@/components/DitherArt";
 import { AnimatedNumber, TokenPerfChart, ReturnsTimeline, DirectionSplit, Sparkline, SignalMix, MiniBars } from "@/components/DossierCharts";
+import { xProfileUrl } from "@/lib/xlink";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 type Tab = "calls" | "said-vs-did";
@@ -179,7 +180,7 @@ export default function DossierPage() {
             {dossier.handle}
           </h1>
           <a
-            href={`https://x.com/${dossier.handle}`}
+            href={xProfileUrl(dossier.handle)}
             target="_blank"
             rel="noopener noreferrer"
             className="label link"
@@ -367,13 +368,13 @@ export default function DossierPage() {
 
       {tab === "calls" && (
         <>
-          <CallLedger calls={dossier.calls} onSelect={handleSelect} />
+          <CallLedger calls={dossier.calls} onSelect={handleSelect} handle={dossier.handle} />
 
-          {selected && <CallDetail call={selected} onClose={() => setSelected(null)} />}
+          {selected && <CallDetail call={selected} onClose={() => setSelected(null)} handle={dossier.handle} />}
         </>
       )}
 
-      {tab === "said-vs-did" && <SaidVsDid data={dossier.saidVsDid} />}
+      {tab === "said-vs-did" && <SaidVsDid data={dossier.saidVsDid} handle={dossier.handle} />}
     </div>
   );
 }

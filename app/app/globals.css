@@ -68,6 +68,16 @@ h1, h2, h3, h4 {
 }
 .tnum { font-variant-numeric: tabular-nums; }
 .pixel { font-family: var(--font-pixel), var(--font-mono), monospace; }
+/* KOL = key opinion leaders, the pun in KOLlateral. Highlight it. */
+.kol {
+  background: var(--signal);
+  color: var(--dark);
+  padding: 0 0.14em;
+  margin-right: 0.02em;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
 .gain { color: var(--gain); }
 .loss { color: var(--loss); }
 

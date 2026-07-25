@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { resolveTweetUrl } from "@/lib/xlink";
 import type { DossierCall } from "@/lib/dossier";
 
 type Filter = "all" | "deleted" | "ambiguous";
@@ -23,9 +24,11 @@ function truncate(s: string, n: number) {
 export function CallLedger({
   calls,
   onSelect,
+  handle,
 }: {
   calls: DossierCall[];
   onSelect: (call: DossierCall) => void;
+  handle: string;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -77,7 +80,7 @@ export function CallLedger({
               >
                 <td className="max-w-xs" style={{ padding: "12px 12px" }}>
                   <a
-                    href={c.url}
+                    href={resolveTweetUrl(c.url, handle)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
