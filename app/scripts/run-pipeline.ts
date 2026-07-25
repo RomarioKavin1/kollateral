@@ -50,22 +50,28 @@ async function main(handle: string) {
     ).run(r.lastInsertRowid, p.content, JSON.stringify(c.raw ?? {}), c.chatId, c.teeSignature);
 
     if (isSignal && addr) {
-      const entry = await priceAt(addr, p.posted_at);
-      const latest = await priceAt(addr, Math.floor(Date.now() / 1000) - 3600);
-      const ethE = await priceAt(WETH, p.posted_at);
-      const ethL = await priceAt(WETH, Math.floor(Date.now() / 1000) - 3600);
+      try {
+        const entry = await priceAt(addr, p.posted_at);
+        const latest = await priceAt(addr, Math.floor(Date.now() / 1000) - 3600);
+        const ethE = await priceAt(WETH, p.posted_at);
+        const ethL = await priceAt(WETH, Math.floor(Date.now() / 1000) - 3600);
 
-      const mk = db.prepare(
-        "INSERT OR IGNORE INTO marks (call_id,kind,price_usd,source,marked_at) VALUES (?,?,?,?,?)"
-      );
-      if (entry) mk.run(r.lastInsertRowid, "entry", entry.price, entry.source, p.posted_at);
-      if (latest) mk.run(r.lastInsertRowid, "live", latest.price, latest.source, (Date.now() / 1000) | 0);
-      // ETH benchmark stored under d1/d7 kinds, disambiguated by source — Task 7 reads by source
-      if (ethE && ethL) {
-        mk.run(r.lastInsertRowid, "d1", ethE.price, "eth_entry", p.posted_at);
-        mk.run(r.lastInsertRowid, "d7", ethL.price, "eth_latest", (Date.now() / 1000) | 0);
+        const mk = db.prepare(
+          "INSERT OR IGNORE INTO marks (call_id,kind,price_usd,source,marked_at) VALUES (?,?,?,?,?)"
+        );
+        if (entry) mk.run(r.lastInsertRowid, "entry", entry.price, entry.source, p.posted_at);
+        if (latest) mk.run(r.lastInsertRowid, "live", latest.price, latest.source, (Date.now() / 1000) | 0);
+        // ETH benchmark stored under d1/d7 kinds, disambiguated by source — Task 7 reads by source
+        if (ethE && ethL) {
+          mk.run(r.lastInsertRowid, "d1", ethE.price, "eth_entry", p.posted_at);
+          mk.run(r.lastInsertRowid, "d7", ethL.price, "eth_latest", (Date.now() / 1000) | 0);
+        }
+        if (!entry) db.prepare("UPDATE calls SET status='unpriceable' WHERE id=?").run(r.lastInsertRowid);
+      } catch (err) {
+        console.log(`pricing failed for call ${r.lastInsertRowid}: ${(err as Error).message}`);
+        db.prepare("UPDATE calls SET status='unpriceable' WHERE id=?").run(r.lastInsertRowid);
+        continue;
       }
-      if (!entry) db.prepare("UPDATE calls SET status='unpriceable' WHERE id=?").run(r.lastInsertRowid);
     }
 
     console.log(`${p.x_post_id}: ${template} ${s.asset_symbol ?? ""} conf=${s.confidence}`);

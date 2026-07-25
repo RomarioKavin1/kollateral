@@ -12,7 +12,7 @@ export const TOKENS: Record<string, string | undefined> = {
   PEPE: "0x6982508145454ce325ddbe47a25d4ec3d2311933",
   WETH: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
   ETH: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // native ETH priced via WETH pools
-  SHIB: "0x95ad61b0a150d79219dca20d97dbfd279aefdcb1",
+  SHIB: "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce",
   LINK: "0x514910771af9ca656af840dff83e8264ecf986ca",
   UNI: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
   AAVE: "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9",
