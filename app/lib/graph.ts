@@ -1,3 +1,5 @@
+import { subgraphPriceAt } from "./subgraph";
+
 const BASE = "https://api.pinax.network/v1";
 
 // Built lazily inside a function (not a module-level const) so importing this
@@ -62,8 +64,16 @@ export async function priceAt(token: string, tsSec: number): Promise<{ price: nu
   // across pages; sort defensively before pickCandleClose relies on ordering.
   candles.sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
   const price = pickCandleClose(candles, tsSec);
-  // subgraph fallback wired in Task 11 when OHLC returns null
-  return price != null ? { price, source: "pinax_ohlc" } : null;
+  if (price != null) return { price, source: "pinax_ohlc" };
+  // Task 11: subgraph fallback, wired here. Only fires when Pinax OHLC has no
+  // covering candle (thin/new pool, or a gap before Pinax's OHLC history
+  // starts) and GRAPH_STUDIO_KEY is configured; otherwise a no-op no-network
+  // null passthrough, so this is harmless when unused.
+  if (process.env.GRAPH_STUDIO_KEY) {
+    const subgraphPrice = await subgraphPriceAt(token, tsSec);
+    if (subgraphPrice != null) return { price: subgraphPrice, source: "uniswap_v3_subgraph" };
+  }
+  return null;
 }
 
 export async function swapsForWallet(wallet: string, startSec: number, endSec: number): Promise<WalletSwap[]> {

@@ -7,7 +7,7 @@ import { TOKENS } from "../lib/tokens"; // symbol->address map seeded for the de
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
 
-async function main(handle: string) {
+export async function runPipeline(handle: string) {
   const db = getDb();
   const posts = db
     .prepare(
@@ -78,7 +78,14 @@ async function main(handle: string) {
   }
 }
 
-main(process.argv[2] ?? "CryptoKaleo").catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// CLI shim: `tsx scripts/run-pipeline.ts [handle]` runs the pipeline once for
+// a single handle. scripts/poll.ts imports runPipeline directly to loop it
+// over multiple tracked handles instead of shelling out to this file.
+function main() {
+  runPipeline(process.argv[2] ?? "CryptoKaleo").catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+if (require.main === module) main();
