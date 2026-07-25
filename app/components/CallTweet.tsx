@@ -127,15 +127,23 @@ export function CallTweet({
           )}
         </div>
 
-        {/* 0G TEE proof badge */}
+        {/* 0G TEE proof status bar */}
         {ai && (
-          <button className={`proof-badge ${proofOpen ? "proof-open" : ""}`} onClick={() => setProofOpen((v) => !v)} aria-expanded={proofOpen}>
-            <span className="proof-dot" />
-            {ai.verified ? "TEE-verified inference" : "0G inference"}
-            <span style={{ color: "var(--faint)" }}>· {ai.model ?? "0g-compute"}</span>
-            {ai.verified ? <span style={{ color: "var(--gain)" }}>· verified ✓</span> : null}
-            <span style={{ color: "var(--ink)", fontWeight: 600, marginLeft: 2 }}>{proofOpen ? "hide proof" : "show full proof"}</span>
-            <span style={{ color: "var(--faint)" }}>{proofOpen ? "▾" : "▸"}</span>
+          <button
+            className={`proof-bar ${ai.verified ? "proof-bar-verified" : ""} ${proofOpen ? "open" : ""}`}
+            onClick={() => setProofOpen((v) => !v)}
+            aria-expanded={proofOpen}
+          >
+            <span className="proof-bar-left">
+              <span className="proof-dot" />
+              <span className="proof-title">{ai.verified ? "TEE-verified" : "0G inference"}</span>
+              {ai.verified && <span className="proof-check">✓</span>}
+              <span className="proof-model">{ai.model ?? "0g-compute"}</span>
+            </span>
+            <span className="proof-toggle">
+              {proofOpen ? "hide proof" : "show full proof"}
+              <span className="proof-chev">{proofOpen ? "▾" : "▸"}</span>
+            </span>
           </button>
         )}
 

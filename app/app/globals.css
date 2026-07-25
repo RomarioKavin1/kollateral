@@ -257,17 +257,48 @@ a { color: inherit; text-decoration: none; }
 .tw-name:hover { color: var(--signal); text-decoration: underline; text-underline-offset: 2px; }
 .tw-src { color: var(--faint); transition: color 0.18s; }
 .tw-src:hover { color: var(--ink); }
+/* proof status bar (full width, never wraps awkwardly) */
+.proof-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; margin-top: 12px;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 9px 12px; cursor: pointer; text-align: left;
+  transition: border-color 0.18s, background 0.18s;
+}
+.proof-bar:hover, .proof-bar.open { border-color: var(--line-strong); }
+.proof-bar-verified {
+  background: color-mix(in oklch, var(--gain) 7%, var(--surface));
+  border-color: color-mix(in oklch, var(--gain) 34%, var(--line));
+}
+.proof-bar-verified:hover, .proof-bar-verified.open { border-color: color-mix(in oklch, var(--gain) 55%, var(--line)); }
+.proof-bar-left { display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.proof-title { color: var(--ink); font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em; }
+.proof-bar-verified .proof-title { color: var(--gain); }
+.proof-check { color: var(--gain); font-weight: 700; }
+.proof-model { color: var(--faint); }
+.proof-model::before { content: "·"; margin-right: 7px; }
+.proof-toggle { color: var(--ink); font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.proof-chev { color: var(--faint); }
+
+/* small pill (used by the 'verify this inference now' button) */
 .proof-badge {
   display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
   font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.04em;
   color: var(--muted);
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
-  padding: 5px 12px; cursor: pointer;
+  padding: 6px 13px; cursor: pointer;
   transition: border-color 0.18s, color 0.18s;
 }
 .proof-badge:hover { border-color: var(--line-strong); color: var(--ink); }
-.proof-open { border-color: var(--line-strong); color: var(--ink); }
-.proof-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--signal); box-shadow: 0 0 0 3px color-mix(in oklch, var(--signal) 25%, transparent); }
+.proof-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; background: var(--signal); box-shadow: 0 0 0 3px color-mix(in oklch, var(--signal) 25%, transparent); }
+.proof-bar-verified .proof-dot { background: var(--gain); box-shadow: 0 0 0 3px color-mix(in oklch, var(--gain) 22%, transparent); animation: proofPulse 2.2s ease-in-out infinite; }
+@keyframes proofPulse {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in oklch, var(--gain) 22%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in oklch, var(--gain) 6%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .proof-bar-verified .proof-dot { animation: none; } }
 .proof-panel {
   margin-top: 12px; padding: 14px 16px;
   background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
