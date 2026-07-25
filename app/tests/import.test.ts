@@ -12,4 +12,18 @@ describe("importArchive", () => {
     const r2 = importArchive("CryptoKaleo", "/tmp/fixture.json");
     expect(r2.skipped).toBe(1);
   });
+
+  it("skips malformed rows without aborting the import", () => {
+    process.env.DB_PATH = ":memory:";
+    writeFileSync("/tmp/fixture-malformed.json", JSON.stringify([
+      { id: "222", text: "$WIF sending it", created_at: "2025-03-02T10:00:00Z",
+        url: "https://x.com/kaleo/status/222" },
+      { id: "223", text: null, created_at: "2025-03-02T10:00:00Z",
+        url: "https://x.com/kaleo/status/223" },
+      { id: "224", text: "garbage timestamp post", created_at: "garbage",
+        url: "https://x.com/kaleo/status/224" },
+    ]));
+    const r = importArchive("CryptoKaleo", "/tmp/fixture-malformed.json");
+    expect(r).toEqual({ inserted: 1, skipped: 0, malformed: 2 });
+  });
 });
