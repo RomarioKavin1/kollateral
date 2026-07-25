@@ -17,6 +17,15 @@ function timeAgo(unixSec: number): string {
 function monogram(h: string) {
   return h.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "??";
 }
+function timeUntil(unixSec: number): string {
+  const s = unixSec - Math.floor(Date.now() / 1000);
+  if (s <= 0) return "0m";
+  const d = Math.floor(s / 86400);
+  if (d >= 1) return `${d}d`;
+  const h = Math.floor(s / 3600);
+  if (h >= 1) return `${h}h`;
+  return `${Math.max(1, Math.floor(s / 60))}m`;
+}
 function trunc(v: string | null | undefined, n = 8) {
   if (!v) return null;
   return v.length <= n * 2 + 1 ? v : `${v.slice(0, n)}…${v.slice(-6)}`;
@@ -53,11 +62,42 @@ export function CallTweet({
   const [imgOk, setImgOk] = useState(true);
   const [proofOpen, setProofOpen] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [deleted, setDeleted] = useState<boolean>(call.deleted_at != null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportPending, setReportPending] = useState(false);
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
 
   const name = call.display_name || call.handle;
   const dir = call.direction;
   const ai = call.ai;
   const settled = call.status === "settled";
+  const now = Math.floor(Date.now() / 1000);
+  const isSignal = call.template !== "AMBIGUOUS";
+
+  async function submitReport() {
+    setReportPending(true);
+    setReportMsg(null);
+    try {
+      const r = await fetch("/api/report-deleted", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ callId: call.call_id }),
+      });
+      const d = (await r.json()) as { deleted?: boolean; verified?: boolean; error?: string };
+      if (d.deleted) {
+        setDeleted(true);
+        setReportOpen(false);
+      } else if (d.deleted === false) {
+        setReportMsg("The tweet still resolves on X. Report rejected, nothing hidden.");
+      } else {
+        setReportMsg("Could not verify against X right now. Try again shortly.");
+      }
+    } catch {
+      setReportMsg("Could not verify against X right now. Try again shortly.");
+    } finally {
+      setReportPending(false);
+    }
+  }
 
   // Lazily pull the full receipt (signature + content hash) the first time the
   // proof drawer opens, so the panel shows the actual TEE artifact, not a claim.
@@ -92,21 +132,51 @@ export function CallTweet({
           </Link>
           <span className="label" style={{ letterSpacing: "0.04em" }}>@{call.handle}</span>
           <span className="label">· {timeAgo(call.posted_at)}</span>
-          {call.deleted_at && <span className="label" style={{ color: "var(--loss)" }}>· deleted</span>}
-          <a
-            href={resolveTweetUrl(call.url, call.handle)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="tw-src label"
-            style={{ marginLeft: "auto" }}
-            title={isRealTweetUrl(call.url) ? "Open the original tweet" : "Documented call, open the creator's X profile"}
-          >
-            {isRealTweetUrl(call.url) ? "original ↗" : "on x ↗"}
-          </a>
+          <span style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 12 }}>
+            {!deleted && (
+              <button className="tw-report" onClick={() => { setReportOpen((v) => !v); setReportMsg(null); }} title="Report this call's tweet as deleted">
+                ⚑ report deleted
+              </button>
+            )}
+            <a
+              href={resolveTweetUrl(call.url, call.handle)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tw-src label"
+              title={isRealTweetUrl(call.url) ? "Open the original tweet" : "Documented call, open the creator's X profile"}
+            >
+              {isRealTweetUrl(call.url) ? "original ↗" : "on x ↗"}
+            </a>
+          </span>
         </div>
 
+        {/* deleted banner — red, prominent */}
+        {deleted && (
+          <div className="deleted-banner">
+            <span className="db-mark">⚑ THIS POST WAS DELETED</span>
+            <span className="label">the caller took it down{call.deleted_at ? `, ${timeAgo(call.deleted_at)} ago` : ""}, we kept the receipt</span>
+          </div>
+        )}
+
+        {/* report-deletion confirm */}
+        {reportOpen && !deleted && (
+          <div className="report-confirm">
+            <div className="label" style={{ marginBottom: 6 }}>// report a deletion</div>
+            <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, margin: 0 }}>
+              You&apos;re about to report this call&apos;s tweet as deleted. We verify it against X before flagging, false reports are rejected and nothing is hidden.
+            </p>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+              <button className="rc-btn" onClick={() => { setReportOpen(false); setReportMsg(null); }}>Cancel</button>
+              <button className="rc-btn rc-confirm" disabled={reportPending} onClick={submitReport}>
+                {reportPending ? "checking X…" : "Report deletion"}
+              </button>
+              {reportMsg && <span className="label" style={{ color: "var(--loss)" }}>{reportMsg}</span>}
+            </div>
+          </div>
+        )}
+
         {/* the tweet */}
-        <p style={{ marginTop: 8, color: "var(--ink)", fontSize: 15, lineHeight: 1.55, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+        <p style={{ marginTop: deleted ? 12 : 8, color: "var(--ink)", fontSize: 15, lineHeight: 1.55, whiteSpace: "pre-wrap", overflowWrap: "anywhere", opacity: deleted ? 0.72 : 1 }}>
           {call.content}
         </p>
 
@@ -124,6 +194,19 @@ export function CallTweet({
           <span className="chip tnum">{Math.round(call.confidence * 100)}% confidence</span>
           {settled && call.latest_price != null && (
             <span className="chip tnum">settled @ ${call.latest_price.toLocaleString()}</span>
+          )}
+          {/* time remaining until the call resolves */}
+          {isSignal && !deleted && !settled && call.expiry_at != null && (
+            call.expiry_at > now ? (
+              <span className="chip chip-time tnum" title={`Resolves ${new Date(call.expiry_at * 1000).toLocaleString()}`}>
+                ⏳ resolves in {timeUntil(call.expiry_at)}
+              </span>
+            ) : (
+              <span className="chip chip-time tnum">⏳ past deadline, awaiting price</span>
+            )
+          )}
+          {isSignal && !deleted && !settled && call.expiry_at == null && (
+            <span className="chip tnum" style={{ color: "var(--faint)" }}>open, no deadline</span>
           )}
         </div>
 
