@@ -195,23 +195,41 @@ export function CallTweet({
             </span>
           )}
           <span className="chip tnum">{Math.round(call.confidence * 100)}% confidence</span>
-          {settled && call.latest_price != null && (
-            <span className="chip tnum">settled @ ${call.latest_price.toLocaleString()}</span>
-          )}
-          {/* time remaining until the call resolves */}
-          {isSignal && !deleted && !settled && call.expiry_at != null && (
-            call.expiry_at > now ? (
-              <span className="chip chip-time tnum" title={`Resolves ${new Date(call.expiry_at * 1000).toLocaleString()}`}>
-                ⏳ resolves in {timeUntil(call.expiry_at)}
-              </span>
-            ) : (
-              <span className="chip chip-time tnum">⏳ past deadline, awaiting price</span>
-            )
-          )}
-          {isSignal && !deleted && !settled && call.expiry_at == null && (
-            <span className="chip tnum" style={{ color: "var(--faint)" }}>open, no deadline</span>
-          )}
         </div>
+
+        {/* resolution countdown — its own full-width row with a progress bar */}
+        {isSignal && !deleted && (() => {
+          if (settled) {
+            return (
+              <div className="resolve-row">
+                <span className="rlabel"><span className="rdot rdot-done" /> resolution</span>
+                <div className="resolve-track"><div className="resolve-fill resolve-fill-done" style={{ width: "100%" }} /></div>
+                <span className="resolve-eta" style={{ color: "var(--gain)" }}>
+                  settled{call.latest_price != null ? ` @ $${call.latest_price.toLocaleString()}` : ""}
+                </span>
+              </div>
+            );
+          }
+          if (call.expiry_at == null) {
+            return (
+              <div className="resolve-row">
+                <span className="rlabel"><span className="rdot" /> resolution</span>
+                <div className="resolve-track" />
+                <span className="resolve-eta" style={{ color: "var(--faint)" }}>no deadline set</span>
+              </div>
+            );
+          }
+          const total = Math.max(1, call.expiry_at - call.posted_at);
+          const pct = Math.max(2, Math.min(100, Math.round(((now - call.posted_at) / total) * 100)));
+          const past = call.expiry_at <= now;
+          return (
+            <div className="resolve-row" title={`Resolves ${new Date(call.expiry_at * 1000).toLocaleString()}`}>
+              <span className="rlabel"><span className="rdot rdot-live" /> resolution</span>
+              <div className="resolve-track"><div className="resolve-fill" style={{ width: `${pct}%` }} /></div>
+              <span className="resolve-eta">{past ? "awaiting price" : `${timeUntil(call.expiry_at)} left`}</span>
+            </div>
+          );
+        })()}
 
         {/* 0G TEE proof status bar */}
         {ai && (
