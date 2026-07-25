@@ -32,9 +32,12 @@ export async function runPipeline(handle: string) {
 
     if (!c.signal) continue;
     const s = c.signal;
-    const isSignal = s.template !== "NOT_A_SIGNAL" && s.confidence >= 0.85 && s.asset_symbol;
+    // Models often emit the cashtag form ("$PEPE") or extra whitespace; strip to
+    // the bare symbol for both the TOKENS lookup and what we store/display.
+    const symbol = s.asset_symbol ? s.asset_symbol.replace(/^\$/, "").trim().toUpperCase() : null;
+    const isSignal = s.template !== "NOT_A_SIGNAL" && s.confidence >= 0.85 && !!symbol;
     const template = isSignal ? s.template : "AMBIGUOUS";
-    const addr = s.asset_symbol ? TOKENS[s.asset_symbol.toUpperCase()] ?? null : null;
+    const addr = symbol ? TOKENS[symbol] ?? null : null;
     const expiry = p.posted_at + (s.expiry_days ?? DEFAULT_EXPIRY[s.template] ?? 30) * 86400;
     const now = Math.floor(Date.now() / 1000);
 
@@ -46,7 +49,7 @@ export async function runPipeline(handle: string) {
       .run(
         p.id,
         template,
-        s.asset_symbol,
+        symbol,
         addr,
         s.direction ?? "long",
         expiry,

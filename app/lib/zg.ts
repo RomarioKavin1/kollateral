@@ -8,13 +8,19 @@ export type Classification = {
   teeSignature: string | null;
 };
 
+// Endpoint + default model are env-configurable so the same code runs against
+// the 0G mainnet Private Computer or the testnet router without edits:
+//   ZG_BASE_URL (default mainnet router), ZG_MODEL (default DeepSeek-V3.1).
+const ZG_BASE_URL = process.env.ZG_BASE_URL || "https://router-api.0g.ai/v1";
+const ZG_DEFAULT_MODEL = process.env.ZG_MODEL || "deepseek-ai/DeepSeek-V3.1";
+
 // Lazy-init: instantiating OpenAI eagerly at module load would throw at
 // import time (and in tests) whenever ZG_API_KEY is unset. Building the
 // client on first use keeps `parseToolCall` importable with no env vars.
 let client: OpenAI | null = null;
 function getClient(): OpenAI {
   if (!client) {
-    client = new OpenAI({ baseURL: "https://router-api.0g.ai/v1", apiKey: process.env.ZG_API_KEY! });
+    client = new OpenAI({ baseURL: ZG_BASE_URL, apiKey: (process.env.ZG_API_KEY || "").trim() });
   }
   return client;
 }
@@ -38,8 +44,25 @@ const TOOL: OpenAI.Chat.ChatCompletionTool = {
   },
 };
 
-const SYSTEM = `You classify crypto X posts. Only EXPLICIT directional/target/shill calls are signals.
-Sarcasm, memes, questions, retrospectives => NOT_A_SIGNAL. Be conservative: when unsure, NOT_A_SIGNAL with low confidence.`;
+const SYSTEM = `You classify a crypto X post into ONE trade-signal template via the emit_trade_signal tool.
+
+A post is a SIGNAL only if it makes an EXPLICIT tradeable call on a specific token:
+- DIRECTIONAL: says to long/short a token (e.g. "longing ETH", "short SOL").
+- TARGET_CALL: names a token with an entry/target/price prediction (e.g. "$PEPE to $0.00003").
+- GEM_SHILL: hypes a token to buy (e.g. "$WIF is the next 10x").
+Otherwise (news, commentary, macro takes, sarcasm, memes, questions, retrospectives, no specific token) => NOT_A_SIGNAL.
+
+When it IS a signal you MUST fill:
+- asset_symbol: the bare ticker WITHOUT the $ sign, uppercase (e.g. PEPE, ETH, WIF). Never null for a signal.
+- direction: "long" for buy/bullish calls (default when a token is hyped), "short" for bearish.
+- expiry_days: number of days if a timeframe is stated, else null.
+- confidence: 0-1, how sure you are this is a real explicit call.
+For NOT_A_SIGNAL set asset_symbol null and confidence low.
+
+Examples:
+"$PEPE about to 10x 🚀" -> {template:"GEM_SHILL", asset_symbol:"PEPE", direction:"long", expiry_days:null, confidence:0.9}
+"Longing ETH here, target $4000 by month end" -> {template:"TARGET_CALL", asset_symbol:"ETH", direction:"long", expiry_days:30, confidence:0.9}
+"gm frens, beautiful day" -> {template:"NOT_A_SIGNAL", asset_symbol:null, direction:null, expiry_days:null, confidence:0.0}`;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts loosely-shaped SDK/test completions
 export function parseToolCall(completion: any): Signal | null {
@@ -66,7 +89,7 @@ function isTransient(status: number | undefined): boolean {
 export async function classifyPost(
   text: string,
   postedAt: number,
-  model = "deepseek-ai/DeepSeek-V3.1",
+  model = ZG_DEFAULT_MODEL,
   retries = 2
 ): Promise<Classification> {
   const postedAtIso = new Date(postedAt * 1000).toISOString();
