@@ -75,7 +75,6 @@ export default function HomePage() {
               <span className="sponsor" title="0G" style={{ width: 84, height: 40, WebkitMaskImage: "url(/logos/0g.png)", maskImage: "url(/logos/0g.png)" }} />
               <span className="sponsor" title="The Graph" style={{ width: 40, height: 40, WebkitMaskImage: "url(/logos/the-graph.svg)", maskImage: "url(/logos/the-graph.svg)" }} />
               <span className="sponsor" title="Uniswap" style={{ width: 38, height: 40, WebkitMaskImage: "url(/logos/uniswap.png)", maskImage: "url(/logos/uniswap.png)" }} />
-              <span className="label" style={{ color: "var(--faint)", marginLeft: 4 }}>· base · privy self-custody</span>
             </div>
           </div>
         </div>

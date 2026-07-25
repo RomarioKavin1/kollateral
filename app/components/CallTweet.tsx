@@ -147,7 +147,7 @@ export function CallTweet({
             <ProofRow k="provider" v={trunc(ai.provider, 10)} mono href={ai.provider ? zgAddressUrl(ai.provider) : undefined} />
             <ProofRow k="chat id" v={trunc(ai.chatId, 12)} mono />
             <ProofRow k="request id" v={trunc(ai.requestId, 10)} mono />
-            <ProofRow k="tee signature" v={receipt ? (trunc(receipt.tee_signature, 12) ?? "none on this provider") : "…"} mono />
+            {ai.hasSignature && <ProofRow k="tee signature" v={receipt ? trunc(receipt.tee_signature, 12) : "…"} mono />}
             <ProofRow k="content hash" v={receipt ? trunc(receipt.content_hash, 12) : "…"} mono />
             {ai.costA0gi && <ProofRow k="cost" v={`${(Number(ai.costA0gi) / 1e18).toFixed(6)} A0GI`} mono />}
             <div className="label" style={{ marginTop: 10, color: ai.verified ? "var(--gain)" : "var(--muted)" }}>

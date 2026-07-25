@@ -47,25 +47,27 @@ export async function verifyInference(provider: string, chatID: string): Promise
       };
     }
     if (valid === null) {
-      return {
-        verified: false,
-        status: "unavailable",
-        signer: null,
-        detail: "Provider exposes no verifiable TEE signature (e.g. TeeTLS routing-proof)",
-      };
+      return { verified: false, status: "unavailable", signer: null, detail: TESTNET_REASON };
     }
-    return { verified: false, status: "failed", signer: null, detail: "TEE signature did not verify" };
+    return { verified: false, status: "failed", signer: null, detail: "The TEE signature did not recover to the provider's on-chain signer." };
   } catch (e) {
-    // A TeeTLS provider (testnet omni) throws here (no signature endpoint for the
-    // chatID) — report honestly as unavailable rather than a false negative/positive.
+    // A TeeTLS provider (the free testnet omni model) throws here: there is no
+    // per-response signature endpoint for the chatID. Explain the reason rather
+    // than leaking the raw SDK error.
+    const msg = (e as Error).message ?? "";
+    const noSignature = /signature|not found|no .*proof|attest/i.test(msg);
     return {
       verified: false,
       status: "unavailable",
       signer: null,
-      detail: `verification unavailable: ${(e as Error).message?.slice(0, 140) ?? "unknown"}`,
+      detail: noSignature ? TESTNET_REASON : `Verification could not run: ${msg.slice(0, 140) || "unknown error"}.`,
     };
   }
 }
+
+// Human-readable reason shown when there is nothing to cryptographically verify.
+const TESTNET_REASON =
+  "This inference ran on a 0G testnet provider (TeeTLS), which attests at the transport layer and does not produce a per-response TEE signature, so there is no signature to verify. A mainnet TeeML model (e.g. DeepSeek-V3.1) signs each response and returns a verifiable check.";
 
 // Pure EIP-191 (`personal_sign`) signer recovery — the cryptographic core of the
 // verification above, isolated so it can be unit-tested with no network. Returns

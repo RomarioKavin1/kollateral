@@ -90,13 +90,18 @@ function parseAi(row: FeedRow): FeedAiProof | null {
   } catch {
     /* malformed artifact: still expose provider/verified below */
   }
+  // Only a real EIP-191 signature (0x + 65 bytes) counts. The testnet TeeTLS
+  // provider stores a routing-proof placeholder, not a verifiable signature, so
+  // we must not present it as "TEE-signed".
+  const hasSignature = /^0x[0-9a-fA-F]{130}$/.test(row.tee_signature ?? "");
+
   return {
     model,
     provider,
     chatId: row.chat_id,
     requestId,
     verified: row.verified === 1,
-    hasSignature: !!row.tee_signature,
+    hasSignature,
     aiTemplate,
     aiConfidence,
     costA0gi,
