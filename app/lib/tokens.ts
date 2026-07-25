@@ -31,5 +31,10 @@ export const TOKENS: Record<string, string | undefined> = {
   LDO: "0x5a98fcbea516cf06857215779fd812ca3bef1b32",
   MKR: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
   ENS: "0xc18360217d8f7ab5e7c516566761ea12ce7f9d72",
+  ENA: "0x57e114b691db790c35207b2e685d4a43181e6061",
+  // Gaming/DeFi tokens with real Uniswap history (used in demo dossiers):
+  ILV: "0x767fe9edc9e0df98e07454847909b5e959d7ca0e",
+  WILD: "0x2a3bff78b79a009976eea096a51a948a3dc00e34",
+  EUL: "0xd9fcd98c322942075a5c3860693e9f4f03aae07b",
   // Deliberately absent (Solana-only, no EVM mainnet contract): WIF, BONK, POPCAT.
 };
