@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { VerdictBlock } from "@/components/VerdictBlock";
 import { CallLedger } from "@/components/CallLedger";
+import { CallDetail } from "@/components/CallDetail";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 export default function DossierPage() {
@@ -23,6 +24,7 @@ export default function DossierPage() {
   const [dossier, setDossier] = useState<Dossier | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DossierCall | null>(null);
 
   useEffect(() => {
     if (!handle) return;
@@ -64,9 +66,8 @@ export default function DossierPage() {
       });
   }, [dossier]);
 
-  // no-op for now — Task 8 wires this to the call detail slide-over
   function handleSelect(call: DossierCall) {
-    console.log("selected call", call.id);
+    setSelected(call);
   }
 
   if (loading) {
@@ -117,6 +118,8 @@ export default function DossierPage() {
       )}
 
       <CallLedger calls={dossier.calls} onSelect={handleSelect} />
+
+      {selected && <CallDetail call={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

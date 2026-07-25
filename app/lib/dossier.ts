@@ -11,6 +11,7 @@ interface CallRow {
   template: string;
   asset_symbol: string | null;
   direction: "long" | "short" | null;
+  expiry_at: number | null;
   confidence: number;
   status: string;
   chat_id: string | null;
@@ -31,6 +32,7 @@ export interface DossierCall {
   template: string;
   asset_symbol: string | null;
   direction: "long" | "short" | null;
+  expiry_at: number | null;
   confidence: number;
   entry: number | null;
   latest: number | null;
@@ -65,7 +67,7 @@ export function buildDossier(handle: string): Dossier | null {
   const callRows = db
     .prepare(
       `SELECT p.id as post_id, p.content, p.url, p.posted_at, p.deleted_at,
-              c.id as call_id, c.template, c.asset_symbol, c.direction, c.confidence, c.status,
+              c.id as call_id, c.template, c.asset_symbol, c.direction, c.expiry_at, c.confidence, c.status,
               MAX(a.chat_id) as chat_id
        FROM posts p
        JOIN calls c ON c.post_id = p.id
@@ -147,6 +149,7 @@ export function buildDossier(handle: string): Dossier | null {
       template: r.template,
       asset_symbol: r.asset_symbol,
       direction: r.direction,
+      expiry_at: r.expiry_at,
       confidence: r.confidence,
       entry: marks?.entry ?? null,
       latest: marks?.live ?? null,
