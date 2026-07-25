@@ -144,9 +144,9 @@ export default function TerminalPage() {
 
   const stats = useMemo(() => {
     const all = calls ?? [];
-    const signed = all.filter((c) => c.ai?.hasSignature).length;
+    const verified = all.filter((c) => c.ai?.verified).length;
     const signals = all.filter((c) => c.template !== "AMBIGUOUS").length;
-    return { total: all.length, signed, signals };
+    return { total: all.length, verified, signals };
   }, [calls]);
 
   return (
@@ -199,7 +199,7 @@ export default function TerminalPage() {
                   <span className="label">indexed</span><span>{stats.total}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12 }} className="tnum">
-                  <span className="label">tee-signed</span><span style={{ color: "var(--gain)" }}>{stats.signed}</span>
+                  <span className="label">tee-verified</span><span style={{ color: "var(--gain)" }}>{stats.verified}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 12 }} className="tnum">
                   <span className="label">real signals</span><span>{stats.signals}</span>
