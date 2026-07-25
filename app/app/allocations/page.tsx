@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { usePrivy } from "@privy-io/react-auth";
+import { DitherArt } from "@/components/DitherArt";
 import type { InfluencerSummary } from "@/app/api/influencers/route";
 
 type Mode = "copy" | "fade";
@@ -179,7 +180,8 @@ export default function AllocationsPage() {
         <>
           <section style={{ marginTop: 48 }}>
             <div className="label" style={{ marginBottom: 14 }}>// add an allocation</div>
-            <form onSubmit={handleSubmit} className="panel" style={{ padding: "26px 26px 28px", maxWidth: 460, display: "flex", flexDirection: "column", gap: 18 }}>
+            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)] gap-5 items-stretch">
+            <form onSubmit={handleSubmit} className="panel" style={{ padding: "26px 26px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
               <div>
                 <span className="label" style={fieldLabel}>Creator</span>
                 {influencers && influencers.length > 0 ? (
@@ -244,6 +246,25 @@ export default function AllocationsPage() {
                 {submitOk && <span className="label" style={{ color: "var(--gain)" }}>saved.</span>}
               </div>
             </form>
+
+            <div
+              style={{
+                position: "relative",
+                background: "var(--dark)",
+                borderRadius: "var(--radius)",
+                overflow: "hidden",
+                minHeight: 320,
+              }}
+            >
+              <DitherArt shape="arrows" invert gap={4} className="h-full w-full" />
+              <div
+                className="label"
+                style={{ position: "absolute", bottom: 14, left: 16, right: 16, color: "var(--dark-ink)", opacity: 0.75 }}
+              >
+                copy the honest, fade the rest, routed on-chain
+              </div>
+            </div>
+            </div>
           </section>
 
           <section style={{ marginTop: 64 }}>

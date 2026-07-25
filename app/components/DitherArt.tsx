@@ -133,8 +133,9 @@ export function DitherArt({
         const inside = mask(wx, wy);
         return inside * (0.55 + 0.45 * vnoise(cx * 34 + t, cy * 34 - t * 0.5));
       }
-      // field
-      return 0.35 + 0.4 * vnoise(cx * 6 + t * 0.3, cy * 6 - t * 0.2);
+      // field: calm ambient drift (sparse, not static)
+      const f = vnoise(cx * 3.2 + t * 0.25, cy * 3.2 - t * 0.18);
+      return sstep(0.5, 0.95, f) * 0.7;
     }
 
     function resize() {

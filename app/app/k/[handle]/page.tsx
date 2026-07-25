@@ -7,6 +7,7 @@ import { CallLedger } from "@/components/CallLedger";
 import { CallDetail } from "@/components/CallDetail";
 import { SaidVsDid } from "@/components/SaidVsDid";
 import { EquityCurveChart } from "@/components/DitheredChart";
+import { DitherArt } from "@/components/DitherArt";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 type Tab = "calls" | "said-vs-did";
@@ -102,6 +103,33 @@ export default function DossierPage() {
           {dossier.handle}
         </h1>
       </header>
+
+      {/* thesis band — dither accent tying the dossier to the product line */}
+      <div
+        style={{
+          position: "relative",
+          height: 88,
+          background: "var(--dark)",
+          borderRadius: "var(--radius)",
+          overflow: "hidden",
+          marginBottom: 32,
+        }}
+      >
+        <DitherArt shape="signal" invert gap={4} className="h-full w-full" />
+        <div
+          className="label"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: 16,
+            transform: "translateY(-50%)",
+            color: "var(--dark-ink)",
+            opacity: 0.8,
+          }}
+        >
+          separating signal from the noise
+        </div>
+      </div>
 
       <VerdictBlock stats={dossier.stats} />
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
+import { DitherArt } from "@/components/DitherArt";
 
 interface PortfolioTrade {
   creator_handle: string;
@@ -95,6 +96,26 @@ export default function PortfolioPage() {
         <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>Portfolio</h1>
       </div>
 
+      {/* ---- dither hero band ---- */}
+      <div
+        style={{
+          position: "relative",
+          height: 130,
+          marginTop: 24,
+          background: "var(--dark)",
+          borderRadius: "var(--radius)",
+          overflow: "hidden",
+        }}
+      >
+        <DitherArt shape="loop" invert gap={4} className="h-full w-full" />
+        <div
+          className="label"
+          style={{ position: "absolute", bottom: 14, left: 16, color: "var(--dark-ink)", opacity: 0.75 }}
+        >
+          realized performance, compounding
+        </div>
+      </div>
+
       {!ready && <div className="label flick" style={{ padding: "40px 0" }}>loading auth…</div>}
 
       {ready && !authenticated && (
@@ -151,7 +172,33 @@ export default function PortfolioPage() {
                 <div className="label" style={{ marginBottom: 14 }}>// ledger</div>
 
                 {data.trades.length === 0 ? (
-                  <div className="label" style={{ padding: "32px 0", color: "var(--muted)" }}>no trades yet.</div>
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "100%",
+                      height: 200,
+                      background: "var(--dark)",
+                      borderRadius: "var(--radius)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div style={{ position: "absolute", inset: 0 }}>
+                      <DitherArt shape="field" invert gap={4} className="h-full w-full" />
+                    </div>
+                    <div
+                      className="label"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "grid",
+                        placeItems: "center",
+                        color: "var(--dark-ink)",
+                        opacity: 0.85,
+                      }}
+                    >
+                      no trades yet
+                    </div>
+                  </div>
                 ) : (
                   <div className="panel" style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>

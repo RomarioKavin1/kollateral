@@ -251,20 +251,21 @@ export function FadeTicket({ call }: { call: DossierCall }) {
   const step = envelope?.step;
 
   return (
-    <div className="rounded-lg border border-neutral-800 px-4 py-3 text-sm">
+    <div
+      className="rounded-lg border px-4 py-3 text-sm"
+      style={{ borderColor: "var(--line)", background: "var(--surface)" }}
+    >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-neutral-500 uppercase tracking-wide text-[10px]">
-          Fade / Follow · Base Sepolia
-        </span>
+        <span className="label">Fade / Follow · Base Sepolia</span>
         {!isConnected ? (
           <button
             onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-            className="text-xs text-neutral-400 hover:text-neutral-200 underline"
+            className="text-xs underline link"
           >
             connect wallet
           </button>
         ) : (
-          <span className="text-xs text-neutral-500 font-mono">
+          <span className="text-xs font-mono" style={{ color: "var(--faint)" }}>
             {address?.slice(0, 6)}…{address?.slice(-4)}
           </span>
         )}
@@ -272,25 +273,27 @@ export function FadeTicket({ call }: { call: DossierCall }) {
 
       <div className="grid grid-cols-2 gap-2 mb-3">
         <label className="flex flex-col gap-1">
-          <span className="text-neutral-500 text-xs">token address</span>
+          <span className="text-xs" style={{ color: "var(--faint)" }}>token address</span>
           <input
             value={assetAddress}
             onChange={(e) => setAssetAddress(e.target.value)}
             placeholder="0x… (token address on Base Sepolia)"
-            className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-xs font-mono text-neutral-200"
+            className="border rounded px-2 py-1 text-xs font-mono"
+            style={{ background: "var(--bg-2)", borderColor: "var(--line)", color: "var(--ink)" }}
           />
           {assetAddress === "" && (
-            <span className="text-neutral-600 text-[10px]">
+            <span className="text-[10px]" style={{ color: "var(--faint)" }}>
               Enter the token&apos;s Base Sepolia address.
             </span>
           )}
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-neutral-500 text-xs">amount (wei)</span>
+          <span className="text-xs" style={{ color: "var(--faint)" }}>amount (wei)</span>
           <input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-xs font-mono text-neutral-200"
+            className="border rounded px-2 py-1 text-xs font-mono"
+            style={{ background: "var(--bg-2)", borderColor: "var(--line)", color: "var(--ink)" }}
           />
         </label>
       </div>
@@ -300,10 +303,17 @@ export function FadeTicket({ call }: { call: DossierCall }) {
           onClick={() => handlePick("fade")}
           disabled={loading || !isValidAddress}
           className={`flex-1 rounded px-3 py-2 text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
-            mode === "fade"
-              ? "border-red-700 text-red-400 bg-red-950/30"
-              : "border-neutral-800 text-neutral-300 hover:border-neutral-600"
+            mode === "fade" ? "" : "border-[color:var(--line)] hover:border-[color:var(--line-strong)]"
           }`}
+          style={
+            mode === "fade"
+              ? {
+                  border: "1px solid color-mix(in oklch, var(--loss) 45%, var(--line))",
+                  background: "color-mix(in oklch, var(--loss) 8%, var(--surface))",
+                  color: "var(--loss)",
+                }
+              : { color: "var(--ink)" }
+          }
         >
           FADE
         </button>
@@ -311,36 +321,46 @@ export function FadeTicket({ call }: { call: DossierCall }) {
           onClick={() => handlePick("follow")}
           disabled={loading || !isValidAddress}
           className={`flex-1 rounded px-3 py-2 text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
-            mode === "follow"
-              ? "border-emerald-700 text-emerald-400 bg-emerald-950/30"
-              : "border-neutral-800 text-neutral-300 hover:border-neutral-600"
+            mode === "follow" ? "" : "border-[color:var(--line)] hover:border-[color:var(--line-strong)]"
           }`}
+          style={
+            mode === "follow"
+              ? {
+                  border: "1px solid color-mix(in oklch, var(--gain) 45%, var(--line))",
+                  background: "color-mix(in oklch, var(--gain) 8%, var(--surface))",
+                  color: "var(--gain)",
+                }
+              : { color: "var(--ink)" }
+          }
         >
           FOLLOW
         </button>
       </div>
 
-      {loading && <div className="text-xs text-neutral-500 mb-2">fetching quote…</div>}
-      {error && <div className="text-xs text-red-400 mb-2">{error}</div>}
+      {loading && <div className="text-xs mb-2" style={{ color: "var(--faint)" }}>fetching quote…</div>}
+      {error && <div className="text-xs mb-2" style={{ color: "var(--loss)" }}>{error}</div>}
       {approvalInfo?.approval?.approval != null && (
-        <div className="text-xs text-amber-400 mb-2">
+        <div className="text-xs mb-2" style={{ color: "var(--muted)" }}>
           Approval may be required before swap.
         </div>
       )}
 
       {mode && side && (
-        <div className="text-xs text-neutral-500 mb-2 font-mono">
+        <div className="text-xs mb-2 font-mono" style={{ color: "var(--faint)" }}>
           {side === "long" ? "buy" : "sell"} · in {tokenIn.slice(0, 8)}… → out{" "}
           {tokenOut.slice(0, 8)}…
         </div>
       )}
 
       {envelope && (
-        <div className="rounded border border-neutral-900 bg-neutral-900/40 px-3 py-2 mb-2">
-          <div className="text-neutral-500 text-[10px] uppercase tracking-wide mb-1">
+        <div
+          className="rounded px-3 py-2 mb-2 border"
+          style={{ borderColor: "var(--line)", background: "var(--bg-2)" }}
+        >
+          <div className="label mb-1">
             {step === "permit" ? "permit required" : "route"}
           </div>
-          <div className="text-neutral-300 text-xs font-mono break-all">
+          <div className="text-xs font-mono break-all" style={{ color: "var(--ink)" }}>
             {routeSummary ?? "no route data returned"}
           </div>
         </div>
@@ -350,7 +370,8 @@ export function FadeTicket({ call }: { call: DossierCall }) {
         <button
           onClick={() => void handleExecute()}
           disabled={isSending || finalizing}
-          className="w-full rounded bg-neutral-100 text-neutral-900 px-3 py-2 text-sm font-medium hover:bg-white disabled:opacity-50"
+          className="w-full rounded px-3 py-2 text-sm font-medium disabled:opacity-50"
+          style={{ background: "var(--ink)", color: "var(--surface)" }}
         >
           {finalizing
             ? "sign permit in wallet…"
@@ -363,11 +384,11 @@ export function FadeTicket({ call }: { call: DossierCall }) {
       )}
 
       {sendError && (
-        <div className="text-xs text-red-400 mt-2">{sendError.message}</div>
+        <div className="text-xs mt-2" style={{ color: "var(--loss)" }}>{sendError.message}</div>
       )}
 
       {hash && (
-        <div className="text-xs text-emerald-400 mt-2 font-mono break-all">
+        <div className="text-xs mt-2 font-mono break-all" style={{ color: "var(--gain)" }}>
           sent: {hash}
         </div>
       )}

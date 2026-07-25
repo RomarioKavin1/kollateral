@@ -49,13 +49,15 @@ export function EquityCurveChart({
     <ResponsiveContainer width="100%" height={height}>
       <ComposedChart data={data} margin={{ top: 10, right: 12, bottom: 0, left: 0 }}>
         <defs>
-          {/* fine halftone dots — dominant near the line */}
+          {/* fine halftone dots — dominant near the line. Series-color dots read
+              dark on the paper bg; opacity trimmed so the field stays a quiet
+              texture under the crisp line rather than a loud color wash. */}
           <pattern id={fineId} patternUnits="userSpaceOnUse" width="3" height="3">
-            <circle cx="1.5" cy="1.5" r="0.55" fill={lineColor} />
+            <circle cx="1.5" cy="1.5" r="0.55" fill={lineColor} fillOpacity={0.85} />
           </pattern>
           {/* coarse halftone dots — dominant near the baseline */}
           <pattern id={coarseId} patternUnits="userSpaceOnUse" width="7" height="7">
-            <circle cx="3.5" cy="3.5" r="0.9" fill={lineColor} />
+            <circle cx="3.5" cy="3.5" r="0.9" fill={lineColor} fillOpacity={0.7} />
           </pattern>
           {/* opacity gradients that fade the two dot layers in opposite
               directions, so the fill reads as a dither field that thins out
