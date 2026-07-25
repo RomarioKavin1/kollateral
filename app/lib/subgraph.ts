@@ -1,43 +1,99 @@
-// Uniswap v3 subgraph fallback for pricing (Task 11). Activates only when
-// Pinax OHLC (lib/graph.ts priceAt) returns null — e.g. thin pools or gaps
-// before Pinax's OHLC history starts. Composing Token API (Pinax) + The
-// Graph subgraph queries qualifies this for the Graph Composable track.
-const SUBGRAPH_ID = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV";
+// Core-Graph data layer: pricing + wallet forensics via the Uniswap v3 subgraph
+// on The Graph's decentralized network. Chosen over the Pinax Token API per The
+// Graph team's guidance (use core subgraphs, not Pinax). Bonus: the subgraph's
+// `priceUSD` is USD-native, so no token→quote→USD conversion is needed.
+const V3_SUBGRAPH = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV";
 
 // Built lazily inside a function (not a module-level const) so importing this
-// module never depends on GRAPH_STUDIO_KEY being set — mirrors lib/graph.ts's
-// headers() pattern, keeping this module safely importable in tests.
-function endpoint() {
-  return `https://gateway.thegraph.com/api/${process.env.GRAPH_STUDIO_KEY}/subgraphs/id/${SUBGRAPH_ID}`;
+// module never depends on GRAPH_STUDIO_KEY being set — keeps the pure helpers
+// (and this module) safely importable in tests with no env vars.
+function endpoint(subgraphId: string) {
+  return `https://gateway.thegraph.com/api/${process.env.GRAPH_STUDIO_KEY}/subgraphs/id/${subgraphId}`;
 }
 
-function headers() {
-  return { "Content-Type": "application/json" };
-}
-
-export async function subgraphPriceAt(tokenAddress: string, tsSec: number): Promise<number | null> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loosely-shaped GraphQL JSON
+async function gql(subgraphId: string, query: string): Promise<any | null> {
   if (!process.env.GRAPH_STUDIO_KEY) return null;
   try {
-    const query = `{
-      tokenHourDatas(
-        first: 1,
-        orderBy: periodStartUnix,
-        orderDirection: desc,
-        where: { token: "${tokenAddress.toLowerCase()}", periodStartUnix_lte: ${tsSec} }
-      ) { priceUSD periodStartUnix }
-    }`;
-    const r = await fetch(endpoint(), {
+    const r = await fetch(endpoint(subgraphId), {
       method: "POST",
-      headers: headers(),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
     });
     if (!r.ok) return null;
     const j = await r.json();
-    const row = j?.data?.tokenHourDatas?.[0];
-    if (!row?.priceUSD) return null;
-    const price = parseFloat(row.priceUSD);
-    return Number.isFinite(price) ? price : null;
+    return j?.data ?? null;
   } catch {
     return null;
   }
+}
+
+// Latest hourly close at or before tsSec — USD, straight from the subgraph.
+export async function subgraphPriceAt(tokenAddress: string, tsSec: number): Promise<number | null> {
+  const data = await gql(
+    V3_SUBGRAPH,
+    `{
+      tokenHourDatas(
+        first: 1, orderBy: periodStartUnix, orderDirection: desc,
+        where: { token: "${tokenAddress.toLowerCase()}", periodStartUnix_lte: ${tsSec} }
+      ) { priceUSD periodStartUnix }
+    }`
+  );
+  const row = data?.tokenHourDatas?.[0];
+  if (!row?.priceUSD) return null;
+  const price = parseFloat(row.priceUSD);
+  return Number.isFinite(price) ? price : null;
+}
+
+// ---- wallet forensics (Said-vs-Did) ----------------------------------------
+export type RawSwap = {
+  timestamp: string;
+  amountUSD: string;
+  amount0: string;
+  amount1: string;
+  token0: { id: string };
+  token1: { id: string };
+  transaction: { id: string };
+};
+
+// In the Uniswap v3 subgraph, swap amounts are signed from the pool's view:
+// the token the trader SOLD entered the pool (positive amount); the token they
+// received left the pool (negative). So the sold token is whichever side is
+// positive. Pure + testable without network.
+export type SwapSell = { tx_hash: string; token_address: string; usd_value: number; occurred_at: number };
+
+export function parseSwapSell(s: RawSwap): SwapSell | null {
+  const a0 = parseFloat(s.amount0);
+  const a1 = parseFloat(s.amount1);
+  let soldToken: string | null = null;
+  if (a0 > 0) soldToken = s.token0.id;
+  else if (a1 > 0) soldToken = s.token1.id;
+  if (!soldToken) return null;
+  return {
+    tx_hash: s.transaction.id,
+    token_address: soldToken.toLowerCase(),
+    usd_value: parseFloat(s.amountUSD) || 0,
+    occurred_at: parseInt(s.timestamp, 10),
+  };
+}
+
+export async function subgraphSwapsForWallet(
+  wallet: string,
+  startSec: number,
+  endSec: number
+): Promise<SwapSell[]> {
+  const data = await gql(
+    V3_SUBGRAPH,
+    `{
+      swaps(
+        first: 200, orderBy: timestamp, orderDirection: desc,
+        where: { origin: "${wallet.toLowerCase()}", timestamp_gte: ${startSec}, timestamp_lte: ${endSec} }
+      ) {
+        timestamp amountUSD amount0 amount1
+        token0 { id } token1 { id } transaction { id }
+      }
+    }`
+  );
+  const rows: RawSwap[] = data?.swaps ?? [];
+  return rows.map(parseSwapSell).filter((x): x is SwapSell => x !== null);
 }
