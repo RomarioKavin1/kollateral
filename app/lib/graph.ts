@@ -11,10 +11,10 @@ export type WalletSwap = {
   occurred_at: number;
 };
 
-// USD price of an EVM token at a past timestamp, from the subgraph (USD-native).
+// USD price of an EVM token at a past timestamp, composed across the Uniswap v3
+// (hourly) and v2 (daily) subgraphs. Returns the price and which one served it.
 export async function priceAt(token: string, tsSec: number): Promise<{ price: number; source: string } | null> {
-  const price = await subgraphPriceAt(token, tsSec);
-  return price != null && price > 0 ? { price, source: "uniswap_v3_subgraph" } : null;
+  return subgraphPriceAt(token, tsSec);
 }
 
 // A wallet's token sells in a window (each swap labelled a "sell" of the token
