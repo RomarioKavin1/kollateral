@@ -7,6 +7,7 @@ interface ReceiptRow {
   chat_id: string | null;
   tee_signature: string | null;
   provider_address: string | null;
+  verified: number;
   content_hash: string;
 }
 
@@ -19,7 +20,7 @@ export async function GET(
 
   const receipt = db
     .prepare(
-      `SELECT a.request_json, a.response_json, a.chat_id, a.tee_signature, a.provider_address,
+      `SELECT a.request_json, a.response_json, a.chat_id, a.tee_signature, a.provider_address, a.verified,
               p.content_hash
        FROM artifacts a
        JOIN calls c ON c.id = a.call_id
