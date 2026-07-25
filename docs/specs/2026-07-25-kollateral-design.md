@@ -44,7 +44,7 @@ X/Farcaster posts (per tracked handle)
   → Tier-1 prefilter: 0G Router, cheap model (gpt-oss-20b), unverified — signal vs noise
   → Tier-2 classify: 0G Router, DeepSeek-V3.1, TEE-VERIFIED — template JSON via tool-call
       artifact per call: {request, response, chatID (ZG-Res-Key), TEE signature, provider addr}
-  → Pricing: Graph Token API (Pinax) /pools/ohlc + /pools  [fallback: Uniswap v3/v4 subgraph
+  → Pricing: Graph Uniswap v3 subgraph tokenHourDatas.priceUSD (USD-native; core Graph, NOT Pinax — Graph team said Pinax is outdated) [older fallback code: Pinax removed Jul 25
       time-travel queries when OHLC depth/lookback caps hit]
   → Said-vs-Did: Graph Token API /v1/evm/swaps filtered by influencer wallet + token + window
   → Live loops: open-call re-marking · deletion detection (post existence recheck) ·
@@ -79,7 +79,7 @@ Design rules: numbers before narrative; citation on every claim; **zero editoria
 | Uniswap Best API Integration ($7k) | FADE/FOLLOW real swaps + ALL present-day marks via /quote (API load-bearing in the math) | own API key · public repo · **FEEDBACK.md** · feedback form · README pointing at integration code · **save all tx hashes** |
 | 0G Best AI Product ($6k) | all inference on 0G; published calls TEE-signed; receipts UI; (own the "we use the verifiable half" framing — no fake privacy story) | working product · public repo · **video < 3 min** · Telegram & X contacts |
 | Graph Best AI Use Case ($3k) | agent w/ Graph as load-bearing data source + LIVE loops (re-marking, deletion detection, wallet alerts) | public repo · demo video showing live consumption |
-| Graph Composable ($3k) | Token API + Uniswap subgraph time-travel (organic composition); optional Token API MCP as agent access path | confirm interpretation w/ Graph booth mentor FIRST |
+| Graph Composable ($3k) | NEEDS a 2nd product now (Pinax removed): add Uniswap v2 subgraph OR a Substreams package — ask Graph booth which they prefer | confirm w/ Graph booth |
 
 ## Demo script (3 min, persona order)
 
