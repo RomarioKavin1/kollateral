@@ -1,16 +1,9 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { DitherVideo } from "@/components/DitherVideo";
-
-interface InfluencerSummary {
-  handle: string;
-  display_name: string | null;
-  headlinePct: number;
-  callCount: number;
-}
+import { CreatorFeed } from "@/components/CreatorFeed";
 
 const EVIDENCE = [
   { n: "01", k: "BACKTEST", t: "Every call, priced.", d: "We scrape their public calls and mark each one against real DEX prices. $1,000 per call, versus just holding ETH. The verdict is arithmetic." },
@@ -21,18 +14,6 @@ const EVIDENCE = [
 export default function HomePage() {
   const router = useRouter();
   const [handleInput, setHandleInput] = useState("");
-  const [influencers, setInfluencers] = useState<InfluencerSummary[] | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/influencers")
-      .then((r) => (r.ok ? (r.json() as Promise<InfluencerSummary[]>) : []))
-      .then((data) => !cancelled && setInfluencers(data))
-      .catch(() => !cancelled && setInfluencers([]))
-      .finally(() => !cancelled && setLoading(false));
-    return () => { cancelled = true; };
-  }, []);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -144,58 +125,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---- WATCHLIST ---- */}
-      <section className="mx-auto max-w-6xl px-6" style={{ paddingBottom: "clamp(72px, 12vw, 140px)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid var(--line)", paddingBottom: 12 }}>
-          <h2 style={{ fontSize: "clamp(22px, 4vw, 34px)" }}>The watchlist</h2>
-          <span className="label">indexed · sorted by exposure</span>
+      {/* ---- THE FEED ---- */}
+      <section className="mx-auto max-w-3xl px-6" style={{ paddingBottom: "clamp(72px, 12vw, 140px)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid var(--line)", paddingBottom: 12, marginBottom: 28 }}>
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>// the feed</div>
+            <h2 style={{ fontSize: "clamp(22px, 4vw, 34px)" }}>Every call on the record.</h2>
+          </div>
+          <span className="label" style={{ textAlign: "right" }}>follow the honest<br />fade the rest</span>
         </div>
 
-        {loading && <div className="label flick" style={{ padding: "40px 0" }}>reading the ledger…</div>}
-
-        {!loading && influencers && influencers.length === 0 && (
-          <div className="label" style={{ padding: "40px 0", color: "var(--muted)" }}>no creators indexed yet.</div>
-        )}
-
-        <div>
-          {!loading &&
-            influencers?.map((inf, i) => {
-              const neg = inf.headlinePct < 0;
-              return (
-                <Link
-                  key={inf.handle}
-                  href={`/k/${inf.handle}`}
-                  className="wl-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto 1fr auto auto",
-                    gap: 18,
-                    alignItems: "center",
-                    padding: "18px 4px",
-                    borderBottom: "1px solid var(--line)",
-                    animation: `rise 0.5s var(--ease-out-expo) both`,
-                    animationDelay: `${i * 60}ms`,
-                  }}
-                >
-                  <span className="pixel" style={{ color: "var(--faint)", fontSize: 16, width: 28 }}>
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 600 }}>@{inf.handle}</span>
-                    {inf.display_name && <span className="label" style={{ marginLeft: 10 }}>{inf.display_name}</span>}
-                  </span>
-                  <span className="label tnum">{inf.callCount} call{inf.callCount === 1 ? "" : "s"}</span>
-                  <span
-                    className="tnum"
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 17, minWidth: 92, textAlign: "right", color: neg ? "var(--loss)" : "var(--gain)" }}
-                  >
-                    {neg ? "" : "+"}
-                    {inf.headlinePct}%
-                  </span>
-                </Link>
-              );
-            })}
-        </div>
+        <CreatorFeed />
       </section>
 
       <footer className="mx-auto max-w-6xl px-6" style={{ padding: "28px 24px 48px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
