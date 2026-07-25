@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useParams } from "next/navigation";
 import { VerdictBlock } from "@/components/VerdictBlock";
 import { CallLedger } from "@/components/CallLedger";
@@ -8,9 +8,36 @@ import { CallDetail } from "@/components/CallDetail";
 import { SaidVsDid } from "@/components/SaidVsDid";
 import { EquityCurveChart } from "@/components/DitheredChart";
 import { DitherArt } from "@/components/DitherArt";
+import { AnimatedNumber, TokenPerfChart, ReturnsTimeline, DirectionSplit } from "@/components/DossierCharts";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 type Tab = "calls" | "said-vs-did";
+
+function HeaderAvatar({ handle }: { handle: string }) {
+  const [ok, setOk] = useState(true);
+  const mg = handle.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "??";
+  return (
+    <span className="dossier-avatar pixel">
+      {ok ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={`https://unavatar.io/twitter/${handle}`} alt="" width={72} height={72} onError={() => setOk(false)} />
+      ) : (
+        mg
+      )}
+    </span>
+  );
+}
+
+function StatCard({ label, children, accent }: { label: string; children: ReactNode; accent?: string }) {
+  return (
+    <div style={{ background: "var(--surface)", padding: "14px 16px" }}>
+      <div className="label">{label}</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 24, marginTop: 6, color: accent ?? "var(--ink)" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "calls", label: "Calls" },
@@ -67,6 +94,23 @@ export default function DossierPage() {
       });
   }, [dossier]);
 
+  const tokenData = useMemo(
+    () => (dossier?.insights.byToken ?? []).slice(0, 6).map((t) => ({ asset: t.asset, avgRetPct: t.avgRetPct, count: t.count, winRate: t.winRate })),
+    [dossier],
+  );
+
+  const returnsData = useMemo(() => {
+    if (!dossier) return [];
+    return [...dossier.calls]
+      .filter((c) => c.retPct != null && !c.deleted_at)
+      .sort((a, b) => a.posted_at - b.posted_at)
+      .map((c) => ({
+        label: new Date(c.posted_at * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+        retPct: Math.round(c.retPct as number),
+        asset: c.asset_symbol ?? "—",
+      }));
+  }, [dossier]);
+
   function handleSelect(call: DossierCall) {
     setSelected(call);
   }
@@ -87,21 +131,33 @@ export default function DossierPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+    <div className="max-w-5xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
       {/* ---- case file header ---- */}
-      <header style={{ borderBottom: "1px solid var(--line)", paddingBottom: 24, marginBottom: 8 }}>
-        <div className="label">// dossier</div>
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: "clamp(32px, 6vw, 56px)",
-            margin: "10px 0 0",
-            lineHeight: 1,
-          }}
-        >
-          <span style={{ color: "var(--faint)" }}>@</span>
-          {dossier.handle}
-        </h1>
+      <header style={{ borderBottom: "1px solid var(--line)", paddingBottom: 24, marginBottom: 8, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+        <HeaderAvatar handle={dossier.handle} />
+        <div style={{ minWidth: 0 }}>
+          <div className="label">// dossier</div>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(30px, 5.5vw, 52px)",
+              margin: "8px 0 0",
+              lineHeight: 1,
+            }}
+          >
+            <span style={{ color: "var(--faint)" }}>@</span>
+            {dossier.handle}
+          </h1>
+          <a
+            href={`https://x.com/${dossier.handle}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="label link"
+            style={{ display: "inline-block", marginTop: 10 }}
+          >
+            view on x ↗
+          </a>
+        </div>
       </header>
 
       {/* thesis band — dither accent tying the dossier to the product line */}
@@ -154,67 +210,90 @@ export default function DossierPage() {
         </p>
       )}
 
+      {/* ---- animated stat strip ---- */}
+      <div
+        style={{
+          marginBottom: 18,
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+          gap: 1,
+          background: "var(--line)",
+          border: "1px solid var(--line)",
+          borderRadius: "var(--radius)",
+          overflow: "hidden",
+        }}
+      >
+        <StatCard label="Win rate"><AnimatedNumber value={dossier.stats.winRate} suffix="%" /></StatCard>
+        <StatCard label="Settled"><AnimatedNumber value={dossier.stats.settled} /></StatCard>
+        <StatCard label="Scored / total">
+          <AnimatedNumber value={dossier.insights.scoredCalls} />
+          <span style={{ color: "var(--faint)" }}>/</span>
+          <AnimatedNumber value={dossier.insights.totalCalls} />
+        </StatCard>
+        <StatCard label="Wallet contradicts" accent={dossier.insights.contradictionRate > 0 ? "var(--loss)" : "var(--ink)"}>
+          <AnimatedNumber value={dossier.insights.contradictionRate} suffix="%" />
+        </StatCard>
+        <StatCard label="Cadence">
+          <AnimatedNumber value={dossier.insights.callsPerWeek} decimals={1} />
+          <span style={{ fontSize: 13, color: "var(--muted)" }}>/wk</span>
+        </StatCard>
+        {dossier.integrity.deletedTotal > 0 && (
+          <StatCard label="Hidden loss" accent="var(--loss)">
+            <AnimatedNumber value={Math.abs(dossier.integrity.deletedHiddenLoss)} prefix="$" />
+          </StatCard>
+        )}
+      </div>
+
+      {/* ---- analytics dashboard ---- */}
       {dossier.insights.scoredCalls > 0 && (
-        <div
-          className="panel"
-          style={{
-            marginBottom: 40,
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: 1,
-            background: "var(--line)",
-            overflow: "hidden",
-          }}
-        >
-          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
-            <div className="label">Wallet contradicts</div>
-            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
-              {dossier.insights.contradictionRate}% of calls
-            </div>
-          </div>
-          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
-            <div className="label">Direction</div>
-            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
-              {dossier.insights.longPct}% long
-            </div>
-          </div>
-          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
-            <div className="label">Cadence</div>
-            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
-              {dossier.insights.callsPerWeek}/wk
-            </div>
-          </div>
-          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
-            <div className="label">Calls scored</div>
-            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
-              {dossier.insights.scoredCalls}/{dossier.insights.totalCalls}
-            </div>
-          </div>
-          {dossier.insights.bestCall && (
-            <div style={{ background: "var(--surface)", padding: "16px 18px", gridColumn: "1 / -1" }}>
-              <div className="label">Best / worst call</div>
-              <div className="tnum" style={{ fontSize: 14, marginTop: 6 }}>
-                <span style={{ color: "var(--gain)" }}>
-                  {dossier.insights.bestCall.asset} +{dossier.insights.bestCall.retPct}%
-                </span>{" "}
-                <span style={{ color: "var(--faint)" }}>/</span>{" "}
-                <span style={{ color: "var(--loss)" }}>
-                  {dossier.insights.worstCall!.asset} {dossier.insights.worstCall!.retPct}%
-                </span>
-              </div>
+        <div style={{ marginBottom: 40 }}>
+          {curve.length > 0 && (
+            <div className="panel rise" style={{ padding: "18px 18px 8px", marginBottom: 16 }}>
+              <div className="label" style={{ marginBottom: 6 }}>// equity curve · $1,000 per call vs holding ETH</div>
+              <EquityCurveChart data={curve} positive={dossier.stats.totalPnl >= 0} />
             </div>
           )}
-          {dossier.insights.byToken.length > 0 && (
-            <div style={{ background: "var(--surface)", padding: "16px 18px", gridColumn: "1 / -1" }}>
-              <div className="label">Per-token (avg %)</div>
-              <div className="tnum" style={{ fontSize: 14, marginTop: 6, color: "var(--muted)" }}>
-                {dossier.insights.byToken
-                  .slice(0, 4)
-                  .map((t) => `${t.asset} ${t.avgRetPct >= 0 ? "+" : ""}${t.avgRetPct}% (${t.winRate}%W)`)
-                  .join(" · ")}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+            <div className="panel rise" style={{ padding: 18 }}>
+              <div className="label" style={{ marginBottom: 12 }}>// per-token performance (avg %)</div>
+              <TokenPerfChart data={tokenData} />
+            </div>
+            <div className="panel rise" style={{ padding: 18 }}>
+              <div className="label" style={{ marginBottom: 12 }}>// per-call outcomes</div>
+              <ReturnsTimeline data={returnsData} />
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginTop: 16 }}>
+            <div className="panel rise" style={{ padding: 18 }}>
+              <div className="label" style={{ marginBottom: 14 }}>// direction bias</div>
+              <DirectionSplit longPct={dossier.insights.longPct} />
+              {dossier.insights.bestCall && (
+                <div style={{ marginTop: 20, display: "flex", justifyContent: "space-between", gap: 12, borderTop: "1px solid var(--line)", paddingTop: 14 }}>
+                  <span className="label">best / worst</span>
+                  <span className="tnum" style={{ fontSize: 13 }}>
+                    <span style={{ color: "var(--gain)" }}>{dossier.insights.bestCall.asset} +{dossier.insights.bestCall.retPct}%</span>
+                    <span style={{ color: "var(--faint)" }}> / </span>
+                    <span style={{ color: "var(--loss)" }}>{dossier.insights.worstCall!.asset} {dossier.insights.worstCall!.retPct}%</span>
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="panel rise" style={{ padding: 0, overflow: "hidden", position: "relative", minHeight: 172, display: "flex" }}>
+              <div style={{ position: "absolute", inset: 0, background: "var(--dark)" }}>
+                <DitherArt shape="loop" invert gap={5} className="h-full w-full" />
+              </div>
+              <div style={{ position: "relative", padding: 18, color: "var(--dark-ink)", alignSelf: "flex-end" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 34, lineHeight: 1 }}>
+                  <AnimatedNumber value={dossier.insights.contradictionRate} suffix="%" />
+                </div>
+                <div className="label" style={{ color: "var(--dark-ink)", opacity: 0.8, marginTop: 6 }}>
+                  of calls their own wallet traded against
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       )}
 
@@ -242,12 +321,6 @@ export default function DossierPage() {
 
       {tab === "calls" && (
         <>
-          {curve.length > 0 && (
-            <div className="mb-10">
-              <EquityCurveChart data={curve} positive={dossier.stats.totalPnl >= 0} />
-            </div>
-          )}
-
           <CallLedger calls={dossier.calls} onSelect={handleSelect} />
 
           {selected && <CallDetail call={selected} onClose={() => setSelected(null)} />}
