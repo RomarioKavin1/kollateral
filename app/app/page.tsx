@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DitherShader } from "@/components/DitherShader";
+import { DitherVideo } from "@/components/DitherVideo";
 
 interface InfluencerSummary {
   handle: string;
@@ -44,13 +44,13 @@ export default function HomePage() {
     <main>
       {/* ---- HERO ---- */}
       <section className="relative overflow-hidden" style={{ minHeight: "min(92vh, 900px)" }}>
-        <DitherShader className="absolute inset-0 h-full w-full" />
+        <DitherVideo className="absolute inset-0 h-full w-full" />
         {/* legibility scrim, biased left */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(100deg, var(--bg) 0%, color-mix(in oklch, var(--bg) 78%, transparent) 42%, transparent 72%), linear-gradient(0deg, var(--bg), transparent 30%)",
+              "linear-gradient(90deg, var(--bg) 0%, color-mix(in oklch, var(--bg) 82%, transparent) 30%, color-mix(in oklch, var(--bg) 30%, transparent) 55%, transparent 78%), linear-gradient(0deg, var(--bg), transparent 22%), linear-gradient(180deg, color-mix(in oklch, var(--bg) 55%, transparent), transparent 16%)",
           }}
         />
         <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-center px-6" style={{ minHeight: "min(92vh, 900px)" }}>

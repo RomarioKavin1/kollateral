@@ -93,6 +93,10 @@ a { color: inherit; text-decoration: none; }
 .rise { animation: rise 0.7s var(--ease-out-expo) both; }
 .flick { animation: flick 1.4s steps(2) infinite; }
 
+/* Remotion player fills the hero; matching ~16:9 keeps letterboxing invisible */
+.reel-cover { width: 100% !important; height: 100% !important; }
+.reel-cover > * { width: 100% !important; height: 100% !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
