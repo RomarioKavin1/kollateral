@@ -160,6 +160,56 @@ a { color: inherit; text-decoration: none; }
 .act-fade-on { background: var(--loss); border-color: var(--loss); color: var(--bg); }
 .act-fade-on:hover:not(:disabled) { color: var(--bg); border-color: var(--loss); }
 
+/* ---- terminal: twitter-style call cards ---- */
+.tweet {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  transition: border-color 0.2s var(--ease-out-quart);
+}
+.tweet:hover { border-color: var(--line-strong); }
+.tw-avatar {
+  flex-shrink: 0;
+  width: 46px; height: 46px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid; place-items: center;
+  border: 1px solid var(--line-strong);
+  background:
+    radial-gradient(oklch(0 0 0 / 0.16) 0.5px, transparent 0.6px) 0 0 / 3px 3px,
+    var(--bg-2);
+  color: var(--ink); font-size: 15px;
+  transition: border-color 0.2s var(--ease-out-quart);
+}
+.tw-avatar:hover { border-color: var(--signal); }
+.tw-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(0.25) contrast(1.02); }
+.tw-name {
+  font-family: var(--font-display), sans-serif; font-weight: 600; font-size: 15px; color: var(--ink);
+}
+.tw-name:hover { color: var(--signal); text-decoration: underline; text-underline-offset: 2px; }
+.tw-src { color: var(--faint); transition: color 0.18s; }
+.tw-src:hover { color: var(--ink); }
+.proof-badge {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.04em;
+  color: var(--muted);
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 12px; cursor: pointer;
+  transition: border-color 0.18s, color 0.18s;
+}
+.proof-badge:hover { border-color: var(--line-strong); color: var(--ink); }
+.proof-open { border-color: var(--line-strong); color: var(--ink); }
+.proof-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--signal); box-shadow: 0 0 0 3px color-mix(in oklch, var(--signal) 25%, transparent); }
+.proof-panel {
+  margin-top: 12px; padding: 14px 16px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius);
+  animation: rise 0.3s var(--ease-out-quart) both;
+}
+.proof-panel > div:last-of-type { border-bottom: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
   html { scroll-behavior: auto; }
