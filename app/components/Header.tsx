@@ -79,7 +79,7 @@ export function Header() {
         backdropFilter: "blur(8px)",
       }}
     >
-      <Link href="/" className="pixel" style={{ fontSize: 15, letterSpacing: "0.04em", color: "var(--ink)" }}>
+      <Link href="/" className="pixel" style={{ fontSize: 22, letterSpacing: "0.03em", color: "var(--ink)", marginRight: 8 }}>
         <span className="kol">KOL</span>LATERAL
       </Link>
       <nav style={{ display: "flex", gap: 20 }}>

@@ -89,6 +89,24 @@ h1, h2, h3, h4 {
   background-image: radial-gradient(oklch(0 0 0 / 0.5) 0.5px, transparent 0.6px);
   background-size: 4px 4px;
 }
+/* sponsor logos rendered as halftone-dithered silhouettes (logo used as a mask
+   over a dot field); resolve to solid ink on hover */
+.sponsor {
+  display: inline-block;
+  background-color: transparent;
+  background-image: radial-gradient(var(--ink) 0.72px, transparent 0.82px);
+  background-size: 2.6px 2.6px;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
+  opacity: 0.9;
+  transition: background-color 0.2s var(--ease-out-quart), background-image 0.2s, opacity 0.2s;
+}
+.sponsor:hover {
+  background-image: none;
+  background-color: var(--ink);
+  opacity: 1;
+}
 .scan { position: relative; }
 .scan::after {
   content: ""; position: absolute; inset: 0; pointer-events: none;

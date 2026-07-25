@@ -69,11 +69,14 @@ export default function HomePage() {
             </button>
           </form>
 
-          <div className="rise label" style={{ animationDelay: "420ms", marginTop: 28, display: "flex", gap: 20, flexWrap: "wrap" }}>
-            <span>0G TEE-VERIFIED</span>
-            <span>THE GRAPH SUBGRAPHS</span>
-            <span>UNISWAP · BASE</span>
-            <span>PRIVY SELF-CUSTODY</span>
+          <div className="rise" style={{ animationDelay: "420ms", marginTop: 34 }}>
+            <div className="label" style={{ marginBottom: 14 }}>// built on</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 34, flexWrap: "wrap" }}>
+              <span className="sponsor" title="0G" style={{ width: 84, height: 40, WebkitMaskImage: "url(/logos/0g.png)", maskImage: "url(/logos/0g.png)" }} />
+              <span className="sponsor" title="The Graph" style={{ width: 40, height: 40, WebkitMaskImage: "url(/logos/the-graph.svg)", maskImage: "url(/logos/the-graph.svg)" }} />
+              <span className="sponsor" title="Uniswap" style={{ width: 38, height: 40, WebkitMaskImage: "url(/logos/uniswap.png)", maskImage: "url(/logos/uniswap.png)" }} />
+              <span className="label" style={{ color: "var(--faint)", marginLeft: 4 }}>· base · privy self-custody</span>
+            </div>
           </div>
         </div>
 
