@@ -47,27 +47,29 @@ export async function verifyInference(provider: string, chatID: string): Promise
       };
     }
     if (valid === null) {
-      return { verified: false, status: "unavailable", signer: null, detail: TESTNET_REASON };
+      return { verified: false, status: "unavailable", signer: null, detail: NO_SIGNATURE_REASON };
     }
     return { verified: false, status: "failed", signer: null, detail: "The TEE signature did not recover to the provider's on-chain signer." };
   } catch (e) {
-    // A TeeTLS provider (the free testnet omni model) throws here: there is no
-    // per-response signature endpoint for the chatID. Explain the reason rather
-    // than leaking the raw SDK error.
+    // The provider exposes no per-response signature endpoint for this chatID
+    // (TeeTLS / router-served responses). Explain the reason rather than
+    // leaking the raw SDK error.
     const msg = (e as Error).message ?? "";
     const noSignature = /signature|not found|no .*proof|attest/i.test(msg);
     return {
       verified: false,
       status: "unavailable",
       signer: null,
-      detail: noSignature ? TESTNET_REASON : `Verification could not run: ${msg.slice(0, 140) || "unknown error"}.`,
+      detail: noSignature ? NO_SIGNATURE_REASON : `Verification could not run: ${msg.slice(0, 140) || "unknown error"}.`,
     };
   }
 }
 
 // Human-readable reason shown when there is nothing to cryptographically verify.
-const TESTNET_REASON =
-  "This inference ran on a 0G testnet provider (TeeTLS), which attests at the transport layer and does not produce a per-response TEE signature, so there is no signature to verify. A mainnet TeeML model (e.g. DeepSeek-V3.1) signs each response and returns a verifiable check.";
+// Network-agnostic: the point is the provider/route did not return a
+// per-response TEE signature, not which chain it ran on.
+const NO_SIGNATURE_REASON =
+  "This response was served with transport-layer (TeeTLS) attestation and did not return a per-response TEE signature to recover, so there is nothing to cryptographically verify here. Per-response verification needs a TeeML provider that signs each response, reached through the 0G Compute broker (the OpenAI-compatible router does not expose the signature).";
 
 // Pure EIP-191 (`personal_sign`) signer recovery — the cryptographic core of the
 // verification above, isolated so it can be unit-tested with no network. Returns

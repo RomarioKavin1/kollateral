@@ -153,7 +153,7 @@ export function CallTweet({
             <div className="label" style={{ marginTop: 10, color: ai.verified ? "var(--gain)" : "var(--muted)" }}>
               {ai.verified
                 ? "signature recovers to the provider's on-chain TEE signer"
-                : "TeeTLS provider: attested at the transport layer, no per-response signature"}
+                : "transport-layer (TeeTLS) attestation via the 0G router, no per-response signature exposed"}
             </div>
             <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
               <VerifyButton callId={call.call_id} />
