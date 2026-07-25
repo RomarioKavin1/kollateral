@@ -37,31 +37,34 @@ export function CallLedger({
 
   return (
     <div>
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-2 mb-4">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
-            className={`px-3 py-1 text-sm rounded-full border ${
-              filter === f.key
-                ? "border-neutral-400 text-neutral-100"
-                : "border-neutral-800 text-neutral-500"
-            }`}
+            className="chip"
+            style={{
+              cursor: "pointer",
+              background: "transparent",
+              color: filter === f.key ? "var(--ink)" : "var(--faint)",
+              borderColor: filter === f.key ? "var(--line-strong)" : "var(--line)",
+              transition: "color 0.18s var(--ease-out-quart), border-color 0.18s var(--ease-out-quart)",
+            }}
           >
             {f.label}
           </button>
         ))}
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto panel" style={{ padding: "0 4px" }}>
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="text-left text-neutral-500 border-b border-neutral-800">
-              <th className="py-2 pr-3 font-normal">Post</th>
-              <th className="py-2 pr-3 font-normal">Asset</th>
-              <th className="py-2 pr-3 font-normal">Dir</th>
-              <th className="py-2 pr-3 font-normal">Entry → Latest</th>
-              <th className="py-2 pr-3 font-normal">Return</th>
-              <th className="py-2 pr-3 font-normal">Status</th>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
+              <th className="label" style={{ padding: "12px 12px 12px 12px", fontWeight: 400 }}>Post</th>
+              <th className="label" style={{ padding: "12px 12px", fontWeight: 400 }}>Asset</th>
+              <th className="label" style={{ padding: "12px 12px", fontWeight: 400 }}>Dir</th>
+              <th className="label" style={{ padding: "12px 12px", fontWeight: 400 }}>Entry → Latest</th>
+              <th className="label" style={{ padding: "12px 12px", fontWeight: 400 }}>Return</th>
+              <th className="label" style={{ padding: "12px 12px", fontWeight: 400 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -69,45 +72,59 @@ export function CallLedger({
               <tr
                 key={c.id}
                 onClick={() => onSelect(c)}
-                className="border-b border-neutral-900 cursor-pointer hover:bg-neutral-900/60"
+                className="wl-row"
+                style={{ borderBottom: "1px solid var(--line)", cursor: "pointer" }}
               >
-                <td className="py-2 pr-3 max-w-xs">
+                <td className="max-w-xs" style={{ padding: "12px 12px" }}>
                   <a
                     href={c.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-neutral-300 hover:underline"
+                    className="link"
                   >
                     {truncate(c.content, 80)}
                   </a>
                 </td>
-                <td className="py-2 pr-3">
-                  <span className="px-2 py-0.5 rounded bg-neutral-800 text-neutral-300 text-xs">
+                <td style={{ padding: "12px 12px" }}>
+                  <span
+                    className="tnum"
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: "var(--radius)",
+                      background: "var(--bg)",
+                      border: "1px solid var(--line)",
+                      color: "var(--muted)",
+                      fontSize: 12,
+                    }}
+                  >
                     {c.asset_symbol ?? "—"}
                   </span>
                 </td>
-                <td className="py-2 pr-3 tabular-nums">
+                <td className="tnum" style={{ padding: "12px 12px", color: "var(--muted)" }}>
                   {c.direction === "long" ? "↑" : c.direction === "short" ? "↓" : "—"}
                 </td>
-                <td className="py-2 pr-3 tabular-nums whitespace-nowrap">
+                <td className="tnum whitespace-nowrap" style={{ padding: "12px 12px", color: "var(--muted)" }}>
                   {fmtPrice(c.entry)} → {fmtPrice(c.latest)}
                 </td>
                 <td
-                  className={`py-2 pr-3 tabular-nums ${
-                    c.retPct == null
-                      ? "text-neutral-500"
-                      : c.retPct < 0
-                        ? "text-red-500"
-                        : "text-green-500"
-                  }`}
+                  className="tnum"
+                  style={{
+                    padding: "12px 12px",
+                    color:
+                      c.retPct == null
+                        ? "var(--faint)"
+                        : c.retPct < 0
+                          ? "var(--loss)"
+                          : "var(--gain)",
+                  }}
                 >
                   {c.retPct != null ? `${c.retPct >= 0 ? "+" : ""}${c.retPct}%` : "—"}
                 </td>
-                <td className="py-2 pr-3 whitespace-nowrap">
+                <td className="whitespace-nowrap" style={{ padding: "12px 12px" }}>
                   {c.deleted_at != null && <span title="deleted">🗑️ </span>}
                   {c.status === "open" && <span title="open">⏳ </span>}
-                  {c.chat_id != null && <span title="TEE artifact">✓</span>}
+                  {c.chat_id != null && <span title="TEE artifact" style={{ color: "var(--gain)" }}>✓</span>}
                 </td>
               </tr>
             ))}

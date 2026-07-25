@@ -71,19 +71,54 @@ export default function DossierPage() {
   }
 
   if (loading) {
-    return <div className="p-10 text-neutral-500">Loading {handle}…</div>;
+    return (
+      <div className="max-w-4xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+        <div className="label flick">reading the ledger for @{handle}…</div>
+      </div>
+    );
   }
   if (error || !dossier) {
-    return <div className="p-10 text-neutral-500">No dossier for {handle}.</div>;
+    return (
+      <div className="max-w-4xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+        <div className="label" style={{ color: "var(--muted)" }}>no dossier on file for @{handle}.</div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <h1 className="text-2xl font-semibold text-neutral-200">{dossier.handle}</h1>
+    <div className="max-w-4xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+      {/* ---- case file header ---- */}
+      <header style={{ borderBottom: "1px solid var(--line)", paddingBottom: 24, marginBottom: 8 }}>
+        <div className="label">// dossier</div>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "clamp(32px, 6vw, 56px)",
+            margin: "10px 0 0",
+            lineHeight: 1,
+          }}
+        >
+          <span style={{ color: "var(--faint)" }}>@</span>
+          {dossier.handle}
+        </h1>
+      </header>
+
       <VerdictBlock stats={dossier.stats} />
 
       {dossier.integrity.deletedTotal > 0 && (
-        <p className="text-sm text-red-400 mb-6">
+        <p
+          className="tnum"
+          style={{
+            fontSize: 13,
+            color: "var(--loss)",
+            border: "1px solid var(--line)",
+            borderLeft: "2px solid var(--loss)",
+            background: "var(--surface)",
+            borderRadius: "var(--radius)",
+            padding: "10px 14px",
+            marginBottom: 32,
+          }}
+        >
           Deleted {dossier.integrity.deletedTotal} call
           {dossier.integrity.deletedTotal === 1 ? "" : "s"} · avg{" "}
           {dossier.integrity.deletedAvgRetPct >= 0 ? "+" : ""}
@@ -93,43 +128,59 @@ export default function DossierPage() {
       )}
 
       {dossier.insights.scoredCalls > 0 && (
-        <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <div className="text-neutral-500 text-xs uppercase tracking-wide">Wallet contradicts</div>
-            <div className="text-neutral-100 text-lg">{dossier.insights.contradictionRate}% of calls</div>
+        <div
+          className="panel"
+          style={{
+            marginBottom: 40,
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: 1,
+            background: "var(--line)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
+            <div className="label">Wallet contradicts</div>
+            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
+              {dossier.insights.contradictionRate}% of calls
+            </div>
           </div>
-          <div>
-            <div className="text-neutral-500 text-xs uppercase tracking-wide">Direction</div>
-            <div className="text-neutral-100 text-lg">{dossier.insights.longPct}% long</div>
+          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
+            <div className="label">Direction</div>
+            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
+              {dossier.insights.longPct}% long
+            </div>
           </div>
-          <div>
-            <div className="text-neutral-500 text-xs uppercase tracking-wide">Cadence</div>
-            <div className="text-neutral-100 text-lg">{dossier.insights.callsPerWeek}/wk</div>
+          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
+            <div className="label">Cadence</div>
+            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
+              {dossier.insights.callsPerWeek}/wk
+            </div>
           </div>
-          <div>
-            <div className="text-neutral-500 text-xs uppercase tracking-wide">Calls scored</div>
-            <div className="text-neutral-100 text-lg">
+          <div style={{ background: "var(--surface)", padding: "16px 18px" }}>
+            <div className="label">Calls scored</div>
+            <div className="tnum" style={{ color: "var(--ink)", fontSize: 18, marginTop: 6 }}>
               {dossier.insights.scoredCalls}/{dossier.insights.totalCalls}
             </div>
           </div>
           {dossier.insights.bestCall && (
-            <div className="col-span-2">
-              <div className="text-neutral-500 text-xs uppercase tracking-wide">Best / worst call</div>
-              <div className="text-sm">
-                <span className="text-green-400">
+            <div style={{ background: "var(--surface)", padding: "16px 18px", gridColumn: "1 / -1" }}>
+              <div className="label">Best / worst call</div>
+              <div className="tnum" style={{ fontSize: 14, marginTop: 6 }}>
+                <span style={{ color: "var(--gain)" }}>
                   {dossier.insights.bestCall.asset} +{dossier.insights.bestCall.retPct}%
                 </span>{" "}
-                /{" "}
-                <span className="text-red-400">
+                <span style={{ color: "var(--faint)" }}>/</span>{" "}
+                <span style={{ color: "var(--loss)" }}>
                   {dossier.insights.worstCall!.asset} {dossier.insights.worstCall!.retPct}%
                 </span>
               </div>
             </div>
           )}
           {dossier.insights.byToken.length > 0 && (
-            <div className="col-span-2">
-              <div className="text-neutral-500 text-xs uppercase tracking-wide">Per-token (avg %)</div>
-              <div className="text-sm text-neutral-300">
+            <div style={{ background: "var(--surface)", padding: "16px 18px", gridColumn: "1 / -1" }}>
+              <div className="label">Per-token (avg %)</div>
+              <div className="tnum" style={{ fontSize: 14, marginTop: 6, color: "var(--muted)" }}>
                 {dossier.insights.byToken
                   .slice(0, 4)
                   .map((t) => `${t.asset} ${t.avgRetPct >= 0 ? "+" : ""}${t.avgRetPct}% (${t.winRate}%W)`)
@@ -140,16 +191,22 @@ export default function DossierPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-6 border-b border-neutral-800">
+      <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: "1px solid var(--line)" }}>
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-3 py-2 text-sm border-b-2 -mb-px ${
-              tab === t.key
-                ? "border-neutral-200 text-neutral-100"
-                : "border-transparent text-neutral-500 hover:text-neutral-300"
-            }`}
+            className="label"
+            style={{
+              padding: "10px 14px",
+              marginBottom: -1,
+              cursor: "pointer",
+              background: "transparent",
+              border: 0,
+              borderBottom: `2px solid ${tab === t.key ? "var(--ink)" : "transparent"}`,
+              color: tab === t.key ? "var(--ink)" : "var(--faint)",
+              transition: "color 0.18s var(--ease-out-quart)",
+            }}
           >
             {t.label}
           </button>

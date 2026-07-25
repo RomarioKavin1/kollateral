@@ -45,7 +45,8 @@ function CopyButton({ value }: { value: string | null }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
       }}
-      className="ml-2 text-neutral-500 hover:text-neutral-200 text-xs"
+      className="link ml-2"
+      style={{ fontSize: 11 }}
       title="Copy to clipboard"
     >
       {copied ? "copied" : "copy"}
@@ -55,10 +56,13 @@ function CopyButton({ value }: { value: string | null }) {
 
 function ReceiptRow({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-neutral-900 last:border-b-0">
-      <span className="text-neutral-500">{label}</span>
+    <div
+      className="flex items-center justify-between py-1.5"
+      style={{ borderBottom: "1px solid var(--line)" }}
+    >
+      <span className="label">{label}</span>
       <span className="flex items-center">
-        <span className="text-neutral-300">{value ?? "—"}</span>
+        <span style={{ color: "var(--muted)" }}>{value ?? "—"}</span>
         <CopyButton value={value} />
       </span>
     </div>
@@ -116,15 +120,22 @@ export function CallDetail({
     <>
       <div
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 z-40"
+        className="fixed inset-0 z-40"
+        style={{ background: "color-mix(in oklch, var(--bg) 70%, transparent)" }}
         aria-hidden="true"
       />
-      <div className="fixed top-0 right-0 h-full w-[480px] bg-neutral-950 border-l border-neutral-800 z-50 overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800">
-          <h2 className="text-sm font-medium text-neutral-300">Call detail</h2>
+      <div
+        className="fixed top-0 right-0 h-full w-[480px] z-50 overflow-y-auto"
+        style={{ background: "var(--bg-2)", borderLeft: "1px solid var(--line-strong)" }}
+      >
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: "1px solid var(--line)" }}
+        >
+          <h2 className="label">Call detail</h2>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-200 text-lg leading-none"
+            className="link text-lg leading-none"
             aria-label="Close"
           >
             ×
@@ -133,22 +144,35 @@ export function CallDetail({
 
         <div className="px-5 py-4 space-y-5">
           {call.deleted_at != null && (
-            <div className="rounded border border-red-900 bg-red-950/40 px-3 py-2 text-sm text-red-400">
+            <div
+              className="px-3 py-2 text-sm"
+              style={{
+                borderRadius: "var(--radius)",
+                border: "1px solid var(--line)",
+                borderLeft: "2px solid var(--loss)",
+                background: "var(--surface)",
+                color: "var(--loss)",
+              }}
+            >
               Post deleted {fmtDate(call.deleted_at)}. Content preserved from archive (hash{" "}
               {truncateHash(receipt?.content_hash, 8) ?? "—"}).
             </div>
           )}
 
           {/* Tweet-like card */}
-          <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-3">
-            <p className="text-neutral-200 whitespace-pre-wrap">{call.content}</p>
-            <div className="mt-3 flex items-center justify-between text-xs text-neutral-500">
-              <span>{fmtDate(call.posted_at)}</span>
+          <div
+            className="px-4 py-3"
+            style={{ borderRadius: "var(--radius)", border: "1px solid var(--line)", background: "var(--surface)" }}
+          >
+            <p className="whitespace-pre-wrap" style={{ color: "var(--ink)" }}>{call.content}</p>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="label tnum">{fmtDate(call.posted_at)}</span>
               <a
                 href={call.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:underline text-neutral-400"
+                className="link"
+                style={{ fontSize: 12 }}
               >
                 view original →
               </a>
@@ -156,36 +180,40 @@ export function CallDetail({
           </div>
 
           {/* Signal box */}
-          <div className="rounded-lg border border-neutral-800 px-4 py-3 text-sm">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-neutral-300">
+          <div
+            className="px-4 py-3 text-sm"
+            style={{ borderRadius: "var(--radius)", border: "1px solid var(--line)", background: "var(--surface)" }}
+          >
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1" style={{ color: "var(--muted)" }}>
               <span>{call.template}</span>
-              <span className="text-neutral-600">·</span>
+              <span style={{ color: "var(--faint)" }}>·</span>
               <span>{call.asset_symbol ?? "—"}</span>
-              <span className="text-neutral-600">·</span>
+              <span style={{ color: "var(--faint)" }}>·</span>
               <span>{call.direction ?? "—"}</span>
-              <span className="text-neutral-600">·</span>
-              <span>{call.expiry_at != null ? fmtDate(call.expiry_at) : "—"}</span>
-              <span className="text-neutral-600">·</span>
-              <span>{(call.confidence * 100).toFixed(0)}% confidence</span>
+              <span style={{ color: "var(--faint)" }}>·</span>
+              <span className="tnum">{call.expiry_at != null ? fmtDate(call.expiry_at) : "—"}</span>
+              <span style={{ color: "var(--faint)" }}>·</span>
+              <span className="tnum">{(call.confidence * 100).toFixed(0)}% confidence</span>
             </div>
           </div>
 
           {/* Receipt strip */}
-          <div className="rounded-lg border border-neutral-800 px-4 py-3 font-mono text-xs">
+          <div
+            className="px-4 py-3 text-xs"
+            style={{ borderRadius: "var(--radius)", border: "1px solid var(--line)", background: "var(--surface)", fontFamily: "var(--font-mono)" }}
+          >
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-neutral-500 uppercase tracking-wide text-[10px]">
-                TEE receipt
-              </span>
+              <span className="label">TEE receipt</span>
               {!receiptMissing && receipt && (
                 receipt.verified === 1 ? (
-                  <span className="text-green-500">TEE-verified ✓</span>
+                  <span className="label" style={{ color: "var(--gain)" }}>TEE-verified ✓</span>
                 ) : (
-                  <span className="text-neutral-500">unverified on this provider</span>
+                  <span className="label">unverified on this provider</span>
                 )
               )}
             </div>
             {receiptMissing ? (
-              <div className="text-neutral-500">No receipt available for this call.</div>
+              <div className="label">No receipt available for this call.</div>
             ) : (
               <>
                 <ReceiptRow
@@ -204,18 +232,22 @@ export function CallDetail({
               href={`/api/receipt/${call.id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-block text-neutral-400 hover:underline"
+              className="link mt-3 inline-block"
             >
               verify →
             </a>
           </div>
 
           {/* Report deleted */}
-          <div className="rounded-lg border border-neutral-800 px-4 py-3 text-sm">
+          <div
+            className="px-4 py-3 text-sm"
+            style={{ borderRadius: "var(--radius)", border: "1px solid var(--line)", background: "var(--surface)" }}
+          >
             <button
               onClick={reportDeleted}
               disabled={reportPending || call.deleted_at != null}
-              className="text-neutral-300 hover:underline disabled:text-neutral-600 disabled:no-underline"
+              className="link"
+              style={{ opacity: reportPending || call.deleted_at != null ? 0.55 : 1 }}
             >
               {call.deleted_at != null
                 ? "Reported deleted"
@@ -224,7 +256,7 @@ export function CallDetail({
                   : "Report deleted"}
             </button>
             {reportResult && (
-              <div className="mt-2 text-xs text-neutral-400">
+              <div className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
                 {reportResult.error
                   ? `Check failed: ${reportResult.error}`
                   : `deleted: ${String(reportResult.deleted)}${

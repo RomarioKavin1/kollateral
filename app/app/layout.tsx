@@ -37,7 +37,7 @@ export default function RootLayout({
       lang="en"
       className={`${display.variable} ${mono.variable} ${pixel.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full">
         <Providers>
           <Header />
           {children}

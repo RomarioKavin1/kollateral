@@ -67,6 +67,11 @@ const actionBtn: React.CSSProperties = {
 
 export default function TerminalPage() {
   const { isConnected } = useAccount();
+  // Guard wallet state until after mount so the first client render matches the
+  // server (isConnected is always false on the server, avoiding a hydration mismatch).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const connected = mounted && isConnected;
   const [calls, setCalls] = useState<FeedCall[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,7 +112,7 @@ export default function TerminalPage() {
       <div className="label" style={{ marginBottom: 10 }}>// live feed · polling every 10s</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, borderBottom: "1px solid var(--line)", paddingBottom: 20 }}>
         <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>Terminal</h1>
-        {!isConnected && (
+        {!connected && (
           <span className="label" style={{ color: "var(--muted)" }}>
             connect a wallet on a call&apos;s ticket to FADE or FOLLOW
           </span>
@@ -154,29 +159,29 @@ export default function TerminalPage() {
 
                 <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
                   <button
-                    disabled={!isConnected}
-                    title={!isConnected ? "Connect a wallet first" : undefined}
+                    disabled={!connected}
+                    title={!connected ? "Connect a wallet first" : undefined}
                     onClick={() => setOpenCallId(isOpen ? null : c.call_id)}
                     style={{
                       ...actionBtn,
                       color: "var(--loss)",
                       borderColor: isOpen ? "var(--loss)" : "var(--line-strong)",
-                      opacity: !isConnected ? 0.4 : 1,
-                      cursor: !isConnected ? "not-allowed" : "pointer",
+                      opacity: !connected ? 0.4 : 1,
+                      cursor: !connected ? "not-allowed" : "pointer",
                     }}
                   >
                     Fade
                   </button>
                   <button
-                    disabled={!isConnected}
-                    title={!isConnected ? "Connect a wallet first" : undefined}
+                    disabled={!connected}
+                    title={!connected ? "Connect a wallet first" : undefined}
                     onClick={() => setOpenCallId(isOpen ? null : c.call_id)}
                     style={{
                       ...actionBtn,
                       color: "var(--gain)",
                       borderColor: isOpen ? "var(--gain)" : "var(--line-strong)",
-                      opacity: !isConnected ? 0.4 : 1,
-                      cursor: !isConnected ? "not-allowed" : "pointer",
+                      opacity: !connected ? 0.4 : 1,
+                      cursor: !connected ? "not-allowed" : "pointer",
                     }}
                   >
                     Follow
