@@ -63,9 +63,17 @@ export interface SaidVsDid {
   walletEventsChecked: number;
 }
 
+export interface Integrity {
+  deletedTotal: number;
+  deletedScored: number;
+  deletedAvgRetPct: number;
+  deletedHiddenLoss: number;
+}
+
 export interface Dossier {
   handle: string;
   stats: ReturnType<typeof dossierStats>;
+  integrity: Integrity;
   calls: DossierCall[];
   saidVsDid: SaidVsDid;
 }
@@ -126,6 +134,14 @@ export function buildDossier(handle: string): Dossier | null {
   }[] = [];
   const ethPairs: ({ entry: number; latest: number } | undefined)[] = [];
 
+  // Integrity accounting: deleting a call never removes it from the P&L (you
+  // can't delete your way out), and here we ALSO tally deletions explicitly so
+  // the dossier can show "deleted N calls, avg X%, $Y of losses hidden".
+  let deletedTotal = 0; // any deleted call (scored or not)
+  let deletedScored = 0; // deleted calls that carry a P&L
+  let deletedRetSum = 0; // sum of retPct over deleted+scored (for the average)
+  let deletedHiddenLoss = 0; // sum of NEGATIVE pnl among deleted+scored (losses hidden)
+
   const calls: DossierCall[] = callRows.map((r) => {
     const marks = marksByCall.get(r.call_id);
     const scoreable =
@@ -138,6 +154,8 @@ export function buildDossier(handle: string): Dossier | null {
     let pnlUsd: number | null = null;
     let ethPnlUsd: number | null = null;
 
+    if (r.deleted_at != null) deletedTotal++;
+
     if (scoreable) {
       const entry = marks!.entry!;
       const live = marks!.live!;
@@ -147,6 +165,12 @@ export function buildDossier(handle: string): Dossier | null {
       pnlUsd = scored.pnlUsd;
 
       scorableCalls.push({ direction, entry, latest: live, settled: r.status === "settled" });
+
+      if (r.deleted_at != null) {
+        deletedScored++;
+        deletedRetSum += scored.retPct;
+        if (scored.pnlUsd < 0) deletedHiddenLoss += scored.pnlUsd;
+      }
 
       if (marks!.ethEntry != null && marks!.ethLatest != null) {
         const ethEntry = marks!.ethEntry;
@@ -187,7 +211,14 @@ export function buildDossier(handle: string): Dossier | null {
 
   const saidVsDid = buildSaidVsDid(db, influencer.id, influencer.wallet_address);
 
-  return { handle: influencer.handle, stats, calls, saidVsDid };
+  const integrity = {
+    deletedTotal,
+    deletedScored,
+    deletedAvgRetPct: deletedScored ? Math.round((deletedRetSum / deletedScored) * 100) / 100 : 0,
+    deletedHiddenLoss, // negative USD they deleted after the fact
+  };
+
+  return { handle: influencer.handle, stats, integrity, calls, saidVsDid };
 }
 
 interface ContradictionRow {

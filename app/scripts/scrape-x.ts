@@ -151,6 +151,21 @@ function parseEntries(data: any, handle: string): { tweets: ScrapedTweet[]; curs
   return { tweets, cursor };
 }
 
+// Lightweight single-tweet existence check for the on-demand "report deleted"
+// flow (cheaper than a cron over every stored tweet). Returns false when X
+// reports the tweet gone (empty result or a TweetTombstone), true when it still
+// resolves. Throws only on auth/network errors so the caller can distinguish
+// "confirmed deleted" from "couldn't check".
+const Q_TWEET_BY_ID = "Xl5pC_lBk_gcO2ItU39DQw";
+export async function tweetExists(tweetId: string): Promise<boolean> {
+  const variables = { tweetId, withCommunity: false, includePromotedContent: false, withVoice: false };
+  const data = await graphql(Q_TWEET_BY_ID, "TweetResultByRestId", variables, DEFAULT_FEATURES);
+  const result = data?.tweetResult?.result;
+  if (!result) return false;
+  if (result.__typename === "TweetTombstone" || result.tombstone) return false;
+  return true;
+}
+
 export async function scrapeTweets(handle: string, limit = 100): Promise<ScrapedTweet[]> {
   const userId = await resolveUserId(handle);
   const out: ScrapedTweet[] = [];
