@@ -2,20 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { VerdictBlock } from "@/components/VerdictBlock";
 import { CallLedger } from "@/components/CallLedger";
 import { CallDetail } from "@/components/CallDetail";
 import { SaidVsDid } from "@/components/SaidVsDid";
+import { EquityCurveChart } from "@/components/DitheredChart";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 type Tab = "calls" | "said-vs-did";
@@ -85,8 +76,6 @@ export default function DossierPage() {
   if (error || !dossier) {
     return <div className="p-10 text-neutral-500">No dossier for {handle}.</div>;
   }
-
-  const callColor = dossier.stats.totalPnl < 0 ? "#ef4444" : "#22c55e";
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
@@ -171,34 +160,7 @@ export default function DossierPage() {
         <>
           {curve.length > 0 && (
             <div className="mb-10">
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={curve}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                  <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} />
-                  <YAxis stroke="#a3a3a3" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{ background: "#171717", border: "1px solid #262626" }}
-                    labelStyle={{ color: "#e5e5e5" }}
-                  />
-                  <Legend wrapperStyle={{ color: "#a3a3a3" }} />
-                  <Line
-                    type="monotone"
-                    dataKey="call"
-                    name="Calls"
-                    stroke={callColor}
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="eth"
-                    name="ETH"
-                    stroke="#a3a3a3"
-                    dot={false}
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              <EquityCurveChart data={curve} positive={dossier.stats.totalPnl >= 0} />
             </div>
           )}
 
