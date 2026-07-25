@@ -18,7 +18,16 @@ export async function runPipeline(handle: string) {
     .all(handle) as any[];
 
   for (const p of posts) {
-    const c = await classifyPost(p.content, p.posted_at);
+    let c;
+    try {
+      c = await classifyPost(p.content, p.posted_at);
+    } catch (err) {
+      // One post's classification failure (0G rate limit, balance, network)
+      // must not abort the batch; skip it (no call row → retried next run).
+      console.log(`classify failed for post ${p.x_post_id}: ${(err as Error).message}`);
+      await sleep(2500);
+      continue;
+    }
     await sleep(2500); // throttle 0G classification calls
 
     if (!c.signal) continue;

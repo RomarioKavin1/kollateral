@@ -55,6 +55,14 @@ export function parseToolCall(completion: any): Signal | null {
   return parsed.success ? parsed.data : null;
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// HTTP statuses worth retrying (transient); everything else fails fast so the
+// caller sees the real error (e.g. 401 bad key, 402 insufficient balance).
+function isTransient(status: number | undefined): boolean {
+  return status === 429 || status === 408 || (status !== undefined && status >= 500);
+}
+
 export async function classifyPost(
   text: string,
   postedAt: number,
@@ -63,17 +71,33 @@ export async function classifyPost(
 ): Promise<Classification> {
   const postedAtIso = new Date(postedAt * 1000).toISOString();
   for (let i = 0; i <= retries; i++) {
-    const { data, response } = await getClient()
-      .chat.completions.create({
-        model,
-        tools: [TOOL],
-        tool_choice: { type: "function", function: { name: "emit_trade_signal" } },
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: `Posted at: ${postedAtIso}\n\n${text}` },
-        ],
-      })
-      .withResponse();
+    let data: OpenAI.Chat.ChatCompletion;
+    let response: Response;
+    try {
+      const res = await getClient()
+        .chat.completions.create({
+          model,
+          tools: [TOOL],
+          tool_choice: { type: "function", function: { name: "emit_trade_signal" } },
+          messages: [
+            { role: "system", content: SYSTEM },
+            { role: "user", content: `Posted at: ${postedAtIso}\n\n${text}` },
+          ],
+        })
+        .withResponse();
+      data = res.data;
+      response = res.response;
+    } catch (err) {
+      // Transient (rate limit / 5xx / network): back off and retry. Permanent
+      // errors (bad key, insufficient balance) and the final attempt re-throw
+      // so the pipeline can log the real cause and continue to the next post.
+      const status = (err as { status?: number }).status;
+      if (i < retries && (isTransient(status) || status === undefined)) {
+        await sleep(1000 * (i + 1));
+        continue;
+      }
+      throw err;
+    }
     const signal = parseToolCall(data);
     if (signal) {
       return {
@@ -84,5 +108,7 @@ export async function classifyPost(
       };
     }
   }
+  // Reached the retry cap without a parseable tool call: treat as "not a signal"
+  // rather than an error (the model answered, just not usefully).
   return { signal: null, raw: null, chatId: null, teeSignature: null };
 }
