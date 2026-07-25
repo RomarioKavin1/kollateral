@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAccount, useConnect, useSendTransaction } from "wagmi";
+import { useAccount, useConnect, useSendTransaction, useSignTypedData } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import type { DossierCall } from "@/lib/dossier";
+
+// EIP-712 typed-data shape Uniswap returns as `permitData` (Permit2 PermitSingle).
+interface PermitData {
+  domain: Record<string, unknown>;
+  types: Record<string, { name: string; type: string }[]>;
+  values: Record<string, unknown>;
+}
 
 // Base Sepolia canonical WETH (same address across OP-stack chains).
 const WETH_BASE_SEPOLIA = "0x4200000000000000000000000000000000000006";
@@ -19,7 +26,7 @@ type Mode = "fade" | "follow";
 interface QuoteEnvelope {
   step?: "permit" | "swap";
   quote?: {
-    permitData?: unknown;
+    permitData?: PermitData;
     quote?: {
       amountIn?: string;
       amountOut?: string;
@@ -77,6 +84,8 @@ export function FadeTicket({ call }: { call: DossierCall }) {
   const { connect, connectors } = useConnect();
   const { sendTransaction, data: hash, isPending: isSending, error: sendError, reset } =
     useSendTransaction();
+  const { signTypedDataAsync } = useSignTypedData();
+  const [finalizing, setFinalizing] = useState(false);
 
   const [assetAddress, setAssetAddress] = useState("");
   const [amount, setAmount] = useState(DEFAULT_AMOUNT);
@@ -186,14 +195,56 @@ export function FadeTicket({ call }: { call: DossierCall }) {
     }).catch(() => {});
   }, [hash, call.id, mode]);
 
-  function handleExecute() {
-    const tx = envelope?.swap?.swap;
+  function submitTx(tx: { to?: string; data?: `0x${string}`; value?: string } | undefined) {
     if (!tx?.to || !tx?.data) return;
     sendTransaction({
       to: tx.to as `0x${string}`,
       data: tx.data,
       value: tx.value ? BigInt(tx.value) : undefined,
     });
+  }
+
+  // Non-permit route: swap calldata is already present, send it directly.
+  // Permit route: sign the EIP-712 permitData, exchange the signature for swap
+  // calldata via the "swap" action, then send it.
+  async function handleExecute() {
+    setError(null);
+    if (envelope?.step === "swap") {
+      submitTx(envelope.swap?.swap);
+      return;
+    }
+    const permitData = envelope?.quote?.permitData;
+    const innerQuote = envelope?.quote?.quote;
+    if (!permitData || !innerQuote) {
+      setError("Missing permit data to sign.");
+      return;
+    }
+    setFinalizing(true);
+    try {
+      const signature = await signTypedDataAsync({
+        domain: permitData.domain,
+        types: permitData.types,
+        primaryType: "PermitSingle",
+        message: permitData.values,
+      });
+      const res = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "swap", quote: innerQuote, signature, permitData }),
+      });
+      const json = (await res.json()) as QuoteEnvelope;
+      if (!res.ok) {
+        const detail =
+          (json.detail as { errorCode?: string } | undefined)?.errorCode ?? json.status ?? "";
+        setError(`${json.error ?? "swap_failed"}: ${detail}`);
+        return;
+      }
+      submitTx(json.swap?.swap);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Permit signing failed");
+    } finally {
+      setFinalizing(false);
+    }
   }
 
   const routeSummary = summarizeQuote(envelope);
@@ -295,20 +346,20 @@ export function FadeTicket({ call }: { call: DossierCall }) {
         </div>
       )}
 
-      {step === "swap" && envelope?.swap?.swap?.to && !hash && (
+      {((step === "swap" && envelope?.swap?.swap?.to) || step === "permit") && !hash && (
         <button
-          onClick={handleExecute}
-          disabled={isSending}
+          onClick={() => void handleExecute()}
+          disabled={isSending || finalizing}
           className="w-full rounded bg-neutral-100 text-neutral-900 px-3 py-2 text-sm font-medium hover:bg-white disabled:opacity-50"
         >
-          {isSending ? "confirm in wallet…" : "Sign & Execute"}
+          {finalizing
+            ? "sign permit in wallet…"
+            : isSending
+              ? "confirm in wallet…"
+              : step === "permit"
+                ? "Sign Permit & Execute"
+                : "Sign & Execute"}
         </button>
-      )}
-
-      {step === "permit" && (
-        <div className="text-xs text-neutral-500">
-          Quote requires a Permit2 signature step before swap — not wired in this demo build.
-        </div>
       )}
 
       {sendError && (

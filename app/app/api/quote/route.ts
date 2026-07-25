@@ -13,7 +13,7 @@ function headers() {
 }
 
 interface QuoteRequestBody {
-  action?: "approval" | "quote";
+  action?: "approval" | "quote" | "swap";
   tokenIn: string;
   tokenOut: string;
   amount: string;
@@ -22,6 +22,11 @@ interface QuoteRequestBody {
   // check_approval passthrough fields
   walletAddress?: string;
   token?: string;
+  // action "swap": the inner routing quote, the Permit2 signature the client
+  // produced over permitData, and the permitData itself (forwarded to Uniswap).
+  quote?: unknown;
+  signature?: string;
+  permitData?: unknown;
 }
 
 // Reads the response body as JSON if possible, falling back to raw text so
@@ -63,6 +68,25 @@ export async function POST(req: Request) {
       }
       const approval = await approvalRes.json();
       return NextResponse.json({ step: "approval", approval });
+    }
+
+    // Complete a permit-gated swap: the client signed permitData and sends the
+    // signature back here; forward it to Uniswap's /swap to get final calldata.
+    if (action === "swap") {
+      const swapRes = await fetch(`${BASE}/swap`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          quote: body.quote,
+          signature: body.signature,
+          permitData: body.permitData,
+        }),
+      });
+      if (!swapRes.ok) {
+        return upstreamError(swapRes, await readBody(swapRes));
+      }
+      const swap = await swapRes.json();
+      return NextResponse.json({ step: "swap", swap });
     }
 
     const quoteRes = await fetch(`${BASE}/quote`, {
