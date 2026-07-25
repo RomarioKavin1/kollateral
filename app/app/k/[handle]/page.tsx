@@ -225,6 +225,8 @@ export default function DossierPage() {
         }}
       >
         <DitherArt shape="signal" invert gap={4} className="h-full w-full" />
+        {/* left scrim so the caption stays legible over the grain */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, var(--dark) 0%, color-mix(in oklch, var(--dark) 55%, transparent) 26%, transparent 44%)", pointerEvents: "none" }} />
         <div
           className="label"
           style={{
@@ -233,7 +235,7 @@ export default function DossierPage() {
             left: 16,
             transform: "translateY(-50%)",
             color: "var(--dark-ink)",
-            opacity: 0.8,
+            opacity: 0.9,
           }}
         >
           separating signal from the noise
