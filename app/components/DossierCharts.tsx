@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -15,48 +15,25 @@ import {
 
 const EASE = "cubic-bezier(0.16,1,0.3,1)";
 
-// ---- animated count-up -----------------------------------------------------
-// rAF tween with a setTimeout fallback so the final value always lands even
-// when requestAnimationFrame is throttled (e.g. a backgrounded tab).
+// ---- animated stat --------------------------------------------------------
+// Renders the TRUE value immediately (a data-integrity product must never show
+// a wrong number, even for a frame) and animates only its entrance via CSS,
+// which is compositor-driven and correct regardless of rAF throttling.
 export function AnimatedNumber({
   value,
   decimals = 0,
   prefix = "",
   suffix = "",
-  duration = 900,
 }: {
   value: number;
   decimals?: number;
   prefix?: string;
   suffix?: string;
-  duration?: number;
 }) {
-  const [display, setDisplay] = useState(0);
-  const ref = useRef<HTMLSpanElement | null>(null);
-
-  useEffect(() => {
-    let raf = 0;
-    let start: number | null = null;
-    const from = 0;
-    const step = (now: number) => {
-      if (start === null) start = now;
-      const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(from + (value - from) * eased);
-      if (t < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    const fallback = setTimeout(() => setDisplay(value), duration + 120);
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(fallback);
-    };
-  }, [value, duration]);
-
   return (
-    <span ref={ref} className="tnum">
+    <span className="tnum num-in">
       {prefix}
-      {display.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+      {value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
       {suffix}
     </span>
   );
