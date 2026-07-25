@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { usePrivy, useWallets, useDelegatedActions } from "@privy-io/react-auth";
+import { usePrivy, useWallets, useSigners } from "@privy-io/react-auth";
 
 // Shared nav + Privy auth state, mounted once in the root layout so every
 // page gets Home/Terminal/Allocations/Portfolio links plus login/logout and
@@ -10,7 +10,11 @@ import { usePrivy, useWallets, useDelegatedActions } from "@privy-io/react-auth"
 export function Header() {
   const { ready, authenticated, login, logout, user } = usePrivy();
   const { wallets } = useWallets();
-  const { delegateWallet } = useDelegatedActions();
+  // This app uses Privy TEE wallets, so delegation is granted to a server-side
+  // session signer (our registered authorization key quorum) rather than
+  // on-device delegation.
+  const { addSigners } = useSigners();
+  const signerId = process.env.NEXT_PUBLIC_PRIVY_AUTH_ID_2;
 
   const [delegating, setDelegating] = useState(false);
   const [delegateError, setDelegateError] = useState<string | null>(null);
@@ -24,10 +28,14 @@ export function Header() {
 
   async function handleDelegate() {
     if (!embeddedWallet) return;
+    if (!signerId) {
+      setDelegateError("Session signer id not configured (NEXT_PUBLIC_PRIVY_AUTH_ID_2)");
+      return;
+    }
     setDelegating(true);
     setDelegateError(null);
     try {
-      await delegateWallet({ address: embeddedWallet.address, chainType: "ethereum" });
+      await addSigners({ address: embeddedWallet.address, signers: [{ signerId }] });
       setDelegated(true);
     } catch (err) {
       setDelegateError(err instanceof Error ? err.message : "Delegation failed");
