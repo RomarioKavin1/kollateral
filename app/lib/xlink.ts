@@ -1,18 +1,15 @@
 // Resolve X (Twitter) links so they never 404.
 //
-// Two problems this fixes:
-//  1. Some creators' display handle differs from their real X handle
-//     (e.g. "LarkDavis" is @TheCryptoLark on X).
-//  2. Documented/curated calls carry synthetic post URLs
-//     (…/status/lark_ILV_1683113400) that don't exist on X, whereas scraped
-//     calls carry real numeric tweet ids that do.
+// Documented/curated calls carry synthetic post URLs
+// (…/status/lark_ILV_1683113400) that don't exist on X, whereas scraped calls
+// carry real numeric tweet ids that do. Real tweets keep their link; documented
+// calls fall back to the creator's live X profile (x.com/<handle>), which is
+// valid for our creators.
 //
-// Real tweets keep their link (rehosted onto the real handle if it differs);
-// documented calls fall back to the creator's live X profile.
-
-const X_HANDLE: Record<string, string> = {
-  larkdavis: "TheCryptoLark",
-};
+// X_HANDLE only overrides the rare case where a display handle differs from the
+// real X handle. It's empty for now (all current handles are their real X
+// handle, including LarkDavis -> x.com/LarkDavis).
+const X_HANDLE: Record<string, string> = {};
 
 export function xHandle(handle: string): string {
   return X_HANDLE[handle.toLowerCase()] ?? handle;

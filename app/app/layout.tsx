@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Spline_Sans_Mono, Pixelify_Sans } from "next/font/
 import "./globals.css";
 import { Providers } from "./providers";
 import { Header } from "@/components/Header";
+import { DitherArt } from "@/components/DitherArt";
 
 // Display grotesque (headings), pixel accent (wordmark), and the terminal mono
 // that carries all data. See DESIGN.md.
@@ -38,6 +39,10 @@ export default function RootLayout({
       className={`${display.variable} ${mono.variable} ${pixel.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        {/* ambient dither behind everything: living paper grain */}
+        <div aria-hidden className="app-dither">
+          <DitherArt shape="field" gap={5} className="h-full w-full" />
+        </div>
         <Providers>
           <Header />
           {children}

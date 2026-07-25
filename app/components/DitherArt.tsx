@@ -97,18 +97,20 @@ export function DitherArt({
     function coverage(cx: number, cy: number, nx: number, t: number): number {
       const dx = cx - 0.5, dy = cy - 0.5;
       if (shape === "signal") {
-        // left: noisy scattered ring (the noise)
-        const lc = Math.hypot(cx - 0.3, cy - 0.5);
-        let left = sstep(0.02, 0.0, Math.abs(lc - 0.17)); // ring band
-        const flick = vnoise(cx * 26 + t * 1.5, cy * 26 - t);
-        left *= sstep(0.35, 0.9, flick); // punch holes -> scattered
-        // right: dense luminous disc (the signal)
-        const rc = Math.hypot(cx - 0.72, cy - 0.5);
-        const right = sstep(0.2, 0.0, rc) * (0.7 + 0.3 * vnoise(cx * 40, cy * 40 + t));
-        // faint stream drifting from noise into signal
-        const band = sstep(0.06, 0.0, Math.abs(cy - 0.5)) * sstep(0.3, 0.5, cx) * sstep(0.72, 0.55, cx);
-        const stream = band * (0.4 + 0.6 * vnoise(cx * 60 - t * 4, cy * 60)) * 0.5;
-        return Math.max(left, right, stream);
+        // scattered noise on the left drifting right and condensing into a clean,
+        // bright dithered disc on the right (the signal).
+        const distSig = Math.hypot(cx - 0.72, cy - 0.5);
+        const pulse = 0.24 + 0.015 * Math.sin(t * 1.2);
+        const disc = (1 - sstep(0.06, pulse, distSig)) * (0.85 + 0.15 * vnoise(cx * 44, cy * 44 + t));
+        // noise zone: strong on the left, gone by center-right
+        const noiseZone = 1 - sstep(0.16, 0.6, cx);
+        const flow = vnoise(cx * 16 - t * 2.2, cy * 16);
+        const grain = sstep(0.58, 0.84, flow) * noiseZone * 0.75;
+        // faint guiding stream along the midline, sparkling as it flows in
+        const mid = sstep(0.12, 0.0, Math.abs(cy - 0.5));
+        const win = sstep(0.16, 0.34, cx) * (1 - sstep(0.58, 0.74, cx));
+        const guide = mid * win * (0.35 + 0.65 * vnoise(cx * 46 - t * 4.5, cy * 46)) * 0.4;
+        return Math.max(disc, grain, guide);
       }
       if (shape === "arrows") {
         // three chevrons streaming right; flow shifts coverage rightward over time

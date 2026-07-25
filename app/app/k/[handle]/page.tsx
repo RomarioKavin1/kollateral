@@ -163,28 +163,50 @@ export default function DossierPage() {
 
   return (
     <div className="max-w-5xl mx-auto" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
-      {/* ---- case file header ---- */}
-      <header style={{ borderBottom: "1px solid var(--line)", paddingBottom: 24, marginBottom: 8, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+      {/* ---- case file header (the first impression) ---- */}
+      <header style={{ borderBottom: "1px solid var(--line)", paddingBottom: 28, marginBottom: 24, display: "flex", alignItems: "flex-start", gap: 22, flexWrap: "wrap" }}>
         <HeaderAvatar handle={dossier.handle} />
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div className="label">// dossier</div>
-          <h1
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(30px, 5.5vw, 52px)",
-              margin: "8px 0 0",
-              lineHeight: 1,
-            }}
-          >
-            <span style={{ color: "var(--faint)" }}>@</span>
-            {dossier.handle}
-          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8 }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(30px, 5.5vw, 52px)", margin: 0, lineHeight: 1 }}>
+              <span style={{ color: "var(--faint)" }}>@</span>
+              {dossier.handle}
+            </h1>
+            {(() => {
+              const s = dossier.stats;
+              const hp = Math.round((10000 * s.totalPnl) / (1000 * Math.max(s.settled, 1))) / 100;
+              const neg = hp < 0;
+              return (
+                <span
+                  className="tnum"
+                  style={{
+                    fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 700,
+                    color: neg ? "var(--loss)" : "var(--gain)",
+                    border: `1px solid color-mix(in oklch, ${neg ? "var(--loss)" : "var(--gain)"} 45%, var(--line))`,
+                    background: `color-mix(in oklch, ${neg ? "var(--loss)" : "var(--gain)"} 9%, var(--surface))`,
+                    borderRadius: 999, padding: "5px 12px",
+                  }}
+                >
+                  {neg ? "" : "+"}{hp}% track record
+                </span>
+              );
+            })()}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
+            <span className="chip tnum">{dossier.insights.scoredCalls}/{dossier.insights.totalCalls} scored</span>
+            <span className="chip tnum">{dossier.stats.winRate}% win</span>
+            <span className="chip tnum" style={{ color: dossier.insights.contradictionRate > 0 ? "var(--loss)" : undefined, borderColor: dossier.insights.contradictionRate > 0 ? "color-mix(in oklch, var(--loss) 40%, var(--line))" : undefined }}>
+              {dossier.insights.contradictionRate}% wallet-contradicts
+            </span>
+            <span className="chip tnum">{dossier.insights.callsPerWeek}/wk</span>
+          </div>
           <a
             href={xProfileUrl(dossier.handle)}
             target="_blank"
             rel="noopener noreferrer"
             className="label link"
-            style={{ display: "inline-block", marginTop: 10 }}
+            style={{ display: "inline-block", marginTop: 14 }}
           >
             view on x ↗
           </a>

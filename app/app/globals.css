@@ -41,6 +41,9 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+/* ambient dither field fixed behind all content (subtle living paper grain) */
+.app-dither { position: fixed; inset: 0; z-index: -1; opacity: 0.18; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .app-dither { opacity: 0.1; } }
 body {
   background: var(--bg);
   color: var(--ink);
@@ -170,6 +173,29 @@ a { color: inherit; text-decoration: none; }
 .act-fade-on { background: var(--loss); border-color: var(--loss); color: var(--bg); }
 .act-fade-on:hover:not(:disabled) { color: var(--bg); border-color: var(--loss); }
 
+/* upvote / downvote style follow / fade */
+.votes {
+  display: inline-flex; align-items: stretch;
+  border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden;
+  background: var(--surface);
+}
+.votes-open { border-color: var(--ink); }
+.vote {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono), monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 8px 16px; background: transparent; color: var(--muted); cursor: pointer; border: 0;
+  transition: color 0.16s, background 0.16s;
+}
+.vote + .vote { border-left: 1px solid var(--line); }
+.vote .arrow { font-size: 12px; line-height: 1; }
+.vote.up:hover:not(:disabled), .vote.up:focus-visible { color: var(--gain); background: color-mix(in oklch, var(--gain) 12%, transparent); }
+.vote.down:hover:not(:disabled), .vote.down:focus-visible { color: var(--loss); background: color-mix(in oklch, var(--loss) 12%, transparent); }
+.vote.up-on { background: var(--gain); color: var(--bg); }
+.vote.up-on:hover:not(:disabled) { background: var(--gain); color: var(--bg); }
+.vote.down-on { background: var(--loss); color: var(--bg); }
+.vote.down-on:hover:not(:disabled) { background: var(--loss); color: var(--bg); }
+.vote:disabled { opacity: 0.5; cursor: default; }
+
 /* ---- terminal: twitter-style call cards ---- */
 .tweet {
   display: flex;
@@ -242,6 +268,18 @@ a { color: inherit; text-decoration: none; }
   border-bottom: 1px solid var(--line);
   font-family: var(--font-mono), monospace; font-size: 13px; color: var(--ink);
 }
+.term-search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); padding: 8px 10px;
+  transition: border-color 0.18s;
+}
+.term-search:focus-within { border-color: var(--line-strong); }
+.term-search input {
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: 0;
+  color: var(--ink); font-family: var(--font-mono), monospace; font-size: 12px;
+}
+.term-search input::placeholder { color: var(--faint); }
 .filter-pill {
   text-align: left;
   font-family: var(--font-mono), monospace; font-size: 12px; letter-spacing: 0.04em;

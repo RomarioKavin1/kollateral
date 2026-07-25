@@ -178,20 +178,22 @@ export function CreatorFeed() {
                   <span className="chip" title="Share of calls the creator's own wallet traded against">
                     wallet contradicts {c.contradictionRate}%
                   </span>
-                  <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  <div className="votes" style={{ marginLeft: "auto" }}>
                     <button
                       onClick={() => act(c.handle, "copy")}
                       disabled={pending === c.handle + "copy"}
-                      className={`act ${pos === "copy" ? "act-follow-on" : ""}`}
+                      className={`vote up ${pos === "copy" ? "up-on" : ""}`}
+                      title="Copy this creator"
                     >
-                      {pos === "copy" ? "● Following" : "Follow"}
+                      <span className="arrow">▲</span> {pos === "copy" ? "following" : "follow"}
                     </button>
                     <button
                       onClick={() => act(c.handle, "fade")}
                       disabled={pending === c.handle + "fade"}
-                      className={`act ${pos === "fade" ? "act-fade-on" : ""}`}
+                      className={`vote down ${pos === "fade" ? "down-on" : ""}`}
+                      title="Trade against this creator"
                     >
-                      {pos === "fade" ? "● Fading" : "Fade"}
+                      <span className="arrow">▼</span> {pos === "fade" ? "fading" : "fade"}
                     </button>
                   </div>
                 </footer>

@@ -128,11 +128,12 @@ export function CallTweet({
 
         {/* 0G TEE proof badge */}
         {ai && (
-          <button className={`proof-badge ${proofOpen ? "proof-open" : ""}`} onClick={() => setProofOpen((v) => !v)}>
+          <button className={`proof-badge ${proofOpen ? "proof-open" : ""}`} onClick={() => setProofOpen((v) => !v)} aria-expanded={proofOpen}>
             <span className="proof-dot" />
             {ai.hasSignature ? "TEE-signed inference" : "0G inference"}
             <span style={{ color: "var(--faint)" }}>· {ai.model ?? "0g-compute"}</span>
             {ai.verified ? <span style={{ color: "var(--gain)" }}>· verified ✓</span> : null}
+            <span style={{ color: "var(--ink)", fontWeight: 600, marginLeft: 2 }}>{proofOpen ? "hide proof" : "show full proof"}</span>
             <span style={{ color: "var(--faint)" }}>{proofOpen ? "▾" : "▸"}</span>
           </button>
         )}
@@ -156,24 +157,26 @@ export function CallTweet({
           </div>
         )}
 
-        {/* actions */}
-        <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
-          <button
-            className={`act ${fadeOpen ? "act-fade-on" : ""}`}
-            disabled={!connected}
-            title={!connected ? "Connect a wallet first" : "Trade against this call"}
-            onClick={onFade}
-          >
-            Fade
-          </button>
-          <button
-            className="act"
-            disabled={!connected}
-            title={!connected ? "Connect a wallet first" : "Trade with this call"}
-            onClick={onFollow}
-          >
-            Follow
-          </button>
+        {/* actions: follow = vote with, fade = vote against */}
+        <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center" }}>
+          <div className={`votes ${fadeOpen ? "votes-open" : ""}`}>
+            <button
+              className="vote up"
+              disabled={!connected}
+              title={!connected ? "Connect a wallet first" : "Trade with this call"}
+              onClick={onFollow}
+            >
+              <span className="arrow">▲</span> follow
+            </button>
+            <button
+              className="vote down"
+              disabled={!connected}
+              title={!connected ? "Connect a wallet first" : "Trade against this call"}
+              onClick={onFade}
+            >
+              <span className="arrow">▼</span> fade
+            </button>
+          </div>
           {!connected && <span className="label" style={{ color: "var(--faint)" }}>connect a wallet to trade</span>}
         </div>
 

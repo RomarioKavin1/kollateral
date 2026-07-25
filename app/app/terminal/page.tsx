@@ -65,7 +65,8 @@ export default function TerminalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openCallId, setOpenCallId] = useState<number | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("signals");
+  const [query, setQuery] = useState("");
   const [creators, setCreators] = useState<InfluencerSummary[] | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -111,11 +112,21 @@ export default function TerminalPage() {
   }, []);
 
   const shown = useMemo(() => {
-    const all = calls ?? [];
-    if (filter === "signals") return all.filter((c) => c.template !== "AMBIGUOUS");
-    if (filter === "conviction") return all.filter((c) => c.confidence >= 0.7);
+    let all = calls ?? [];
+    if (filter === "signals") all = all.filter((c) => c.template !== "AMBIGUOUS");
+    else if (filter === "conviction") all = all.filter((c) => c.confidence >= 0.7);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      all = all.filter(
+        (c) =>
+          c.handle.toLowerCase().includes(q) ||
+          (c.display_name?.toLowerCase().includes(q) ?? false) ||
+          (c.asset_symbol?.toLowerCase().includes(q) ?? false) ||
+          c.content.toLowerCase().includes(q),
+      );
+    }
     return all;
-  }, [calls, filter]);
+  }, [calls, filter, query]);
 
   // trending tickers, aggregated from the live feed
   const trending = useMemo(() => {
@@ -149,6 +160,20 @@ export default function TerminalPage() {
             <div className="label" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", marginBottom: 20 }}>
               <span className="flick" style={{ color: "var(--signal)", fontSize: 14, lineHeight: 1 }}>●</span>
               live · polls every 10s
+            </div>
+
+            <div className="label" style={{ marginBottom: 8 }}>search</div>
+            <div className="term-search" style={{ marginBottom: 20 }}>
+              <span aria-hidden style={{ color: "var(--faint)" }}>⌕</span>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="handle, $ticker, text"
+                aria-label="Search the feed"
+              />
+              {query && (
+                <button aria-label="clear search" onClick={() => setQuery("")} style={{ background: "none", border: 0, color: "var(--faint)", cursor: "pointer", fontSize: 12 }}>✕</button>
+              )}
             </div>
 
             <div className="label" style={{ marginBottom: 8 }}>filter</div>
