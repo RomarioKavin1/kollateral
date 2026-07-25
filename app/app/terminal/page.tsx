@@ -52,6 +52,19 @@ function fmtDate(unixSeconds: number) {
 
 const POLL_MS = 10_000;
 
+const actionBtn: React.CSSProperties = {
+  fontFamily: "var(--font-mono)",
+  fontSize: 11,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  border: "1px solid var(--line-strong)",
+  borderRadius: "var(--radius)",
+  padding: "7px 16px",
+  background: "transparent",
+  cursor: "pointer",
+  transition: "color .2s, border-color .2s, background .2s, opacity .2s",
+};
+
 export default function TerminalPage() {
   const { isConnected } = useAccount();
   const [calls, setCalls] = useState<FeedCall[] | null>(null);
@@ -90,51 +103,96 @@ export default function TerminalPage() {
   }, []);
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
-      <h1>Terminal</h1>
+    <main className="mx-auto max-w-6xl px-6" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+      <div className="label" style={{ marginBottom: 10 }}>// live feed · polling every 10s</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, borderBottom: "1px solid var(--line)", paddingBottom: 20 }}>
+        <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>Terminal</h1>
+        {!isConnected && (
+          <span className="label" style={{ color: "var(--muted)" }}>
+            connect a wallet on a call&apos;s ticket to FADE or FOLLOW
+          </span>
+        )}
+      </div>
 
-      {!isConnected && <p>Connect a wallet (see a call&apos;s ticket below) to FADE or FOLLOW.</p>}
-
-      {loading && <p>Loading feed…</p>}
-      {!loading && error && <p>Could not load feed ({error}).</p>}
-      {!loading && !error && calls && calls.length === 0 && <p>No calls yet.</p>}
+      {loading && <div className="label flick" style={{ padding: "48px 0" }}>reading the feed…</div>}
+      {!loading && error && (
+        <div className="label" style={{ padding: "48px 0", color: "var(--loss)" }}>could not load feed ({error})</div>
+      )}
+      {!loading && !error && calls && calls.length === 0 && (
+        <div className="label" style={{ padding: "48px 0", color: "var(--muted)" }}>no calls yet.</div>
+      )}
 
       {!loading && !error && calls && calls.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          {calls.map((c) => (
-            <li
-              key={c.call_id}
-              style={{ border: "1px solid #444", padding: 8, marginBottom: 8 }}
-            >
-              <div>
-                <strong>@{c.handle}</strong> · {c.asset_symbol ?? "—"} ·{" "}
-                {c.direction === "long" ? "long" : c.direction === "short" ? "short" : "—"} ·{" "}
-                {(c.confidence * 100).toFixed(0)}% confidence · {fmtDate(c.posted_at)}
-              </div>
-              <p>{c.content}</p>
-              <button
-                disabled={!isConnected}
-                title={!isConnected ? "Connect a wallet first" : undefined}
-                onClick={() => setOpenCallId(openCallId === c.call_id ? null : c.call_id)}
+        <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 14 }}>
+          {calls.map((c, i) => {
+            const isOpen = openCallId === c.call_id;
+            const dirLabel = c.direction === "long" ? "LONG" : c.direction === "short" ? "SHORT" : "—";
+            const dirColor = c.direction === "long" ? "var(--gain)" : c.direction === "short" ? "var(--loss)" : "var(--faint)";
+            return (
+              <div
+                key={c.call_id}
+                className="panel rise"
+                style={{ padding: "20px 22px", animationDelay: `${Math.min(i, 8) * 40}ms` }}
               >
-                FADE
-              </button>{" "}
-              <button
-                disabled={!isConnected}
-                title={!isConnected ? "Connect a wallet first" : undefined}
-                onClick={() => setOpenCallId(openCallId === c.call_id ? null : c.call_id)}
-              >
-                FOLLOW
-              </button>
-              {openCallId === c.call_id && (
-                <div style={{ marginTop: 8 }}>
-                  <FadeTicket call={toDossierCall(c)} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 19, fontWeight: 600 }}>
+                      @{c.handle}
+                    </span>
+                    <span className="label tnum">{fmtDate(c.posted_at)}</span>
+                  </div>
+                  <div className="label tnum" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <span>{c.asset_symbol ?? "—"}</span>
+                    <span style={{ color: dirColor }}>{dirLabel}</span>
+                    <span>{(c.confidence * 100).toFixed(0)}% CONF</span>
+                  </div>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
+
+                <p style={{ marginTop: 14, color: "var(--muted)", fontSize: 13.5, lineHeight: 1.7, maxWidth: "70ch" }}>
+                  {c.content}
+                </p>
+
+                <div style={{ marginTop: 18, display: "flex", gap: 10 }}>
+                  <button
+                    disabled={!isConnected}
+                    title={!isConnected ? "Connect a wallet first" : undefined}
+                    onClick={() => setOpenCallId(isOpen ? null : c.call_id)}
+                    style={{
+                      ...actionBtn,
+                      color: "var(--loss)",
+                      borderColor: isOpen ? "var(--loss)" : "var(--line-strong)",
+                      opacity: !isConnected ? 0.4 : 1,
+                      cursor: !isConnected ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Fade
+                  </button>
+                  <button
+                    disabled={!isConnected}
+                    title={!isConnected ? "Connect a wallet first" : undefined}
+                    onClick={() => setOpenCallId(isOpen ? null : c.call_id)}
+                    style={{
+                      ...actionBtn,
+                      color: "var(--gain)",
+                      borderColor: isOpen ? "var(--gain)" : "var(--line-strong)",
+                      opacity: !isConnected ? 0.4 : 1,
+                      cursor: !isConnected ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Follow
+                  </button>
+                </div>
+
+                {isOpen && (
+                  <div style={{ marginTop: 18, borderTop: "1px solid var(--line)", paddingTop: 18 }}>
+                    <FadeTicket call={toDossierCall(c)} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </main>
   );
 }
