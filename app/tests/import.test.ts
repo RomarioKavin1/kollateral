@@ -26,4 +26,19 @@ describe("importArchive", () => {
     const r = importArchive("CryptoKaleo", "/tmp/fixture-malformed.json");
     expect(r).toEqual({ inserted: 1, skipped: 0, malformed: 2 });
   });
+
+  it("normalizes alt field names, numeric ids, wrapped arrays, missing url", () => {
+    process.env.DB_PATH = ":memory:";
+    // Shape mimics a different scraper: {tweets:[...]}, numeric id_str absent,
+    // full_text instead of text, unix-seconds timestamp, no url field.
+    writeFileSync("/tmp/fixture-alt.json", JSON.stringify({
+      tweets: [
+        { id: 333, full_text: "$SHIB szn", timestamp: 1740830400 },
+        { tweet_id: "334", content: "$LINK breakout", date: "2025-03-01T11:00:00Z", link: "https://x.com/k/status/334" },
+      ],
+    }));
+    const r = importArchive("kaleo", "/tmp/fixture-alt.json");
+    expect(r.inserted).toBe(2);
+    expect(r.malformed).toBe(0);
+  });
 });
