@@ -5,9 +5,14 @@ import { getDb } from "./db";
 let client: PrivyClient | null = null;
 export function privyClient(): PrivyClient {
   if (!client) {
-    // The authorization private key (registered public half in the Privy
-    // dashboard) is what lets our backend sign for delegated user wallets.
-    const authKey = (process.env.PRIVY_AUTH_KEY || "").replace(/\\n/g, "\n") || undefined;
+    // The authorization private key lets our backend sign for delegated user
+    // wallets. Prefer the Privy-dashboard-generated key (native `wallet-auth:`
+    // format, used as-is); fall back to a self-generated PEM if that's how it
+    // was provisioned.
+    const authKey =
+      process.env.PRIVY_AUTH_KEY_2 ||
+      (process.env.PRIVY_AUTH_KEY || "").replace(/\\n/g, "\n") ||
+      undefined;
     client = new PrivyClient(process.env.PRIVY_APP_ID!, process.env.PRIVY_APP_SECRET!, {
       walletApi: authKey ? { authorizationPrivateKey: authKey } : undefined,
     });
