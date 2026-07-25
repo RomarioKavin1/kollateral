@@ -13,7 +13,7 @@ export function Header() {
   // This app uses Privy TEE wallets, so delegation is granted to a server-side
   // session signer (our registered authorization key quorum) rather than
   // on-device delegation.
-  const { addSigners } = useSigners();
+  const { addSigners, removeSigners } = useSigners();
   const signerId = process.env.NEXT_PUBLIC_PRIVY_AUTH_ID_2;
 
   const [delegating, setDelegating] = useState(false);
@@ -39,6 +39,22 @@ export function Header() {
       setDelegated(true);
     } catch (err) {
       setDelegateError(err instanceof Error ? err.message : "Delegation failed");
+    } finally {
+      setDelegating(false);
+    }
+  }
+
+  // Revoke the session signer — the backend can no longer auto-sign for this
+  // wallet. Fully user-controlled: they can turn auto-trading off anytime.
+  async function handleRevoke() {
+    if (!embeddedWallet) return;
+    setDelegating(true);
+    setDelegateError(null);
+    try {
+      await removeSigners({ address: embeddedWallet.address });
+      setDelegated(false);
+    } catch (err) {
+      setDelegateError(err instanceof Error ? err.message : "Revoke failed");
     } finally {
       setDelegating(false);
     }
@@ -80,7 +96,14 @@ export function Header() {
                 {delegating ? "enabling…" : "Enable auto-trading"}
               </button>
             )}
-            {isDelegated && <span>auto-trading enabled</span>}
+            {embeddedWallet && isDelegated && (
+              <>
+                <span>auto-trading enabled</span>
+                <button onClick={() => void handleRevoke()} disabled={delegating}>
+                  {delegating ? "disabling…" : "Disable auto-trading"}
+                </button>
+              </>
+            )}
             {delegateError && <span style={{ color: "red" }}>{delegateError}</span>}
 
             <button onClick={() => void logout()}>Log out</button>
