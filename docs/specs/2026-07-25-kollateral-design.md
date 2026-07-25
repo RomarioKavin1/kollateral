@@ -89,15 +89,15 @@ Design rules: numbers before narrative; citation on every claim; **zero editoria
 4. **Marco/redemption beat:** claimed profile + staked call w/ gold border — "we pay honest callers as much as we cost liars."
 Close: receipt strip click — "every judgment TEE-signed on 0G; the platform cannot rig its own referee."
 
-## Data ingestion (DECIDED Jul 25: X only, via XActions)
+## Data ingestion (DECIDED Jul 25: X only — self-contained in-repo scraper, TESTED LIVE)
 
-- **Source:** X only — no Farcaster. Tool: **XActions v3.4.4** (github.com/nirholas/XActions; pushed Jul 23, 108 tools, data-testid DOM automation, JSON/CSV export, MCP server available). Puppeteer against a logged-in session.
-- **Accounts:** burner X accounts ONLY (make 2 tonight; rotate if flagged). Never a personal account.
-- **Archive build:** search scraper with `from:handle since: until:` windows per target account → raw JSON + content hash into our DB. Start as background job the moment the viability test passes; ~15–20 celebrity accounts × ~300 posts.
+- **Source:** X only — no Farcaster. Tool: **`app/scripts/scrape-x.ts`** — self-contained, no deps (Node fetch + crypto). Auth via burner `auth_token` cookie + self-generated `ct0` (CSRF double-submit) + public web Bearer; resolves handle→userId (`UserByScreenName`), paginates `UserTweets` GraphQL, excludes retweets, writes JSON in `importArchive`'s shape. Verified end-to-end (scrape→import→DB→dedupe) on real handles. (Evaluated XActions' http adapter — its `resolveUserId` is broken against current X's double-nested `data`; we lifted the current query IDs + features and built our own correct scraper.)
+- **Query IDs (they ROTATE):** UserByScreenName `NimuplG1OB7Fd2btCLdBOw`, UserTweets `QWF3SzpHmykQHsQMixG0cg`. On a 404 "Query not found", refresh them from X's web JS bundle.
+- **Accounts:** burner `auth_token` in `.env` ONLY. Never a personal account. Token itself verified working — earlier failures were stale query IDs, not auth.
+- **Usage:** `node --env-file=.env --import tsx scripts/scrape-x.ts <handle> [limit] [outFile]` → `importArchive(handle, outFile)`. Built-in 1.5s page pacing; keep limits modest to avoid flags.
+- **HANDLE CHECK (do first):** `@CryptoKaleo` and `@AshcryptoReal` returned not-found (renamed/suspended) — verify every demo handle live before pre-indexing.
 - **Runtime rule:** the product runs 100% off our own DB. No user-facing path ever waits on a live scrape.
-- **Live feed:** XActions polling loop (60–120s cadence) on tracked handles. Demo's "call lands live" moment = a rehearsed post from a teammate's account picked up by the poller — real pipeline, controlled timing.
-- **Deletion detection:** periodic status-URL recheck loop via same session (cheap, low ban-risk).
-- **Viability gate (hour one):** pull 50 historical posts from one target handle. Fallback if it fails: paid unofficial scraper API (twitterapi.io/Apify class, few dollars for full archive).
+- **Deletion detection / live feed:** re-scrape recent tweets (`recheck-deletions.ts`, `poll.ts`) off the same scraper; product reads DB.
 
 ## Risks & fallbacks
 
