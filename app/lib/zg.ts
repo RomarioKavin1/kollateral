@@ -6,6 +6,7 @@ export type Classification = {
   raw: unknown;
   chatId: string | null;
   teeSignature: string | null;
+  providerAddress: string | null;
 };
 
 // Endpoint + default model are env-configurable so the same code runs against
@@ -128,10 +129,15 @@ export async function classifyPost(
         raw: data,
         chatId: data.id ?? null,
         teeSignature: response.headers.get("zg-res-key") ?? null,
+        // 0G router identifies the serving node/provider via the `x-provider`
+        // response header (confirmed live, also mirrored in the body under
+        // `x_0g_trace.provider`) — an on-chain provider address, not a TEE
+        // attestation. We surface it as-is; no fabrication if it's ever absent.
+        providerAddress: response.headers.get("x-provider") ?? null,
       };
     }
   }
   // Reached the retry cap without a parseable tool call: treat as "not a signal"
   // rather than an error (the model answered, just not usefully).
-  return { signal: null, raw: null, chatId: null, teeSignature: null };
+  return { signal: null, raw: null, chatId: null, teeSignature: null, providerAddress: null };
 }

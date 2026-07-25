@@ -61,9 +61,16 @@ export async function runPipeline(handle: string) {
       );
 
     db.prepare(
-      `INSERT INTO artifacts (call_id,request_json,response_json,chat_id,tee_signature)
-       VALUES (?,?,?,?,?)`
-    ).run(r.lastInsertRowid, p.content, JSON.stringify(c.raw ?? {}), c.chatId, c.teeSignature);
+      `INSERT INTO artifacts (call_id,request_json,response_json,chat_id,tee_signature,provider_address)
+       VALUES (?,?,?,?,?,?)`
+    ).run(
+      r.lastInsertRowid,
+      p.content,
+      JSON.stringify(c.raw ?? {}),
+      c.chatId,
+      c.teeSignature,
+      c.providerAddress
+    );
 
     if (isSignal && addr) {
       try {
