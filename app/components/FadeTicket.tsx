@@ -4,11 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useSendTransaction } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import type { DossierCall } from "@/lib/dossier";
-import { TOKENS } from "@/lib/tokens";
 
 // Base Sepolia canonical WETH (same address across OP-stack chains).
 const WETH_BASE_SEPOLIA = "0x4200000000000000000000000000000000000006";
 const DEFAULT_AMOUNT = "1000000000000000"; // 0.001 WETH-equivalent, in wei
+
+// Token address input must be a syntactically valid EVM address — there is
+// no reliable symbol -> Base Sepolia address map (lib/tokens.ts only covers
+// mainnet), so the operator must supply the testnet address directly.
+const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 
 type Mode = "fade" | "follow";
 
@@ -34,6 +38,19 @@ interface QuoteEnvelope {
     [key: string]: unknown;
   };
   error?: string;
+  status?: number;
+  detail?: unknown;
+}
+
+interface ApprovalEnvelope {
+  step?: "approval";
+  approval?: {
+    approval?: unknown;
+    [key: string]: unknown;
+  };
+  error?: string;
+  status?: number;
+  detail?: unknown;
 }
 
 // FADE inverts the call's direction; FOLLOW mirrors it. Both then map to a
@@ -61,24 +78,24 @@ export function FadeTicket({ call }: { call: DossierCall }) {
   const { sendTransaction, data: hash, isPending: isSending, error: sendError, reset } =
     useSendTransaction();
 
-  const defaultAssetAddress = call.asset_symbol ? TOKENS[call.asset_symbol] ?? "" : "";
-
-  const [assetAddress, setAssetAddress] = useState(defaultAssetAddress);
+  const [assetAddress, setAssetAddress] = useState("");
   const [amount, setAmount] = useState(DEFAULT_AMOUNT);
   const [mode, setMode] = useState<Mode | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [envelope, setEnvelope] = useState<QuoteEnvelope | null>(null);
+  const [approvalInfo, setApprovalInfo] = useState<ApprovalEnvelope | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loggedHashRef = useRef<string | null>(null);
 
+  const isValidAddress = ADDRESS_RE.test(assetAddress);
   const side = mode ? resolveSide(call.direction, mode) : null;
   const tokenIn = side === "long" ? WETH_BASE_SEPOLIA : assetAddress;
   const tokenOut = side === "long" ? assetAddress : WETH_BASE_SEPOLIA;
 
   async function runQuote(currentMode: Mode) {
-    if (!assetAddress) {
-      setError("No token address for this asset — enter one to price the demo swap.");
+    if (!isValidAddress) {
+      setError("Enter a valid Base Sepolia token address to price the demo swap.");
       return;
     }
     if (!address) {
@@ -87,6 +104,7 @@ export function FadeTicket({ call }: { call: DossierCall }) {
     }
     setLoading(true);
     setError(null);
+    setApprovalInfo(null);
     try {
       const s = resolveSide(call.direction, currentMode);
       const body = {
@@ -97,8 +115,9 @@ export function FadeTicket({ call }: { call: DossierCall }) {
         swapper: address,
         chainId: baseSepolia.id,
       };
-      // Trading API's check_approval gate — fire-and-forget for the demo;
-      // a real wallet flow would block on its result before /quote.
+      // Trading API's check_approval gate — kept non-blocking for the demo
+      // (a real wallet flow would block on its result before /quote), but
+      // the result is captured and surfaced to the user informationally.
       fetch("/api/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,7 +128,10 @@ export function FadeTicket({ call }: { call: DossierCall }) {
           amount,
           chainId: baseSepolia.id,
         }),
-      }).catch(() => {});
+      })
+        .then((r) => (r.ok ? (r.json() as Promise<ApprovalEnvelope>) : null))
+        .then((json) => setApprovalInfo(json))
+        .catch(() => {});
 
       const res = await fetch("/api/quote", {
         method: "POST",
@@ -118,7 +140,11 @@ export function FadeTicket({ call }: { call: DossierCall }) {
       });
       const json = (await res.json()) as QuoteEnvelope;
       if (!res.ok) {
-        setError(json.error ?? `Quote failed (${res.status})`);
+        const detail =
+          (json.detail as { errorCode?: string } | undefined)?.errorCode ??
+          json.status ??
+          "";
+        setError(`${json.error ?? "quote_failed"}: ${detail}`);
         setEnvelope(null);
         return;
       }
@@ -199,9 +225,14 @@ export function FadeTicket({ call }: { call: DossierCall }) {
           <input
             value={assetAddress}
             onChange={(e) => setAssetAddress(e.target.value)}
-            placeholder="0x…"
+            placeholder="0x… (token address on Base Sepolia)"
             className="bg-neutral-900 border border-neutral-800 rounded px-2 py-1 text-xs font-mono text-neutral-200"
           />
+          {assetAddress === "" && (
+            <span className="text-neutral-600 text-[10px]">
+              Enter the token&apos;s Base Sepolia address.
+            </span>
+          )}
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-neutral-500 text-xs">amount (wei)</span>
@@ -216,8 +247,8 @@ export function FadeTicket({ call }: { call: DossierCall }) {
       <div className="flex gap-2 mb-3">
         <button
           onClick={() => handlePick("fade")}
-          disabled={loading}
-          className={`flex-1 rounded px-3 py-2 text-sm font-medium border ${
+          disabled={loading || !isValidAddress}
+          className={`flex-1 rounded px-3 py-2 text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
             mode === "fade"
               ? "border-red-700 text-red-400 bg-red-950/30"
               : "border-neutral-800 text-neutral-300 hover:border-neutral-600"
@@ -227,8 +258,8 @@ export function FadeTicket({ call }: { call: DossierCall }) {
         </button>
         <button
           onClick={() => handlePick("follow")}
-          disabled={loading}
-          className={`flex-1 rounded px-3 py-2 text-sm font-medium border ${
+          disabled={loading || !isValidAddress}
+          className={`flex-1 rounded px-3 py-2 text-sm font-medium border disabled:opacity-40 disabled:cursor-not-allowed ${
             mode === "follow"
               ? "border-emerald-700 text-emerald-400 bg-emerald-950/30"
               : "border-neutral-800 text-neutral-300 hover:border-neutral-600"
@@ -240,6 +271,11 @@ export function FadeTicket({ call }: { call: DossierCall }) {
 
       {loading && <div className="text-xs text-neutral-500 mb-2">fetching quote…</div>}
       {error && <div className="text-xs text-red-400 mb-2">{error}</div>}
+      {approvalInfo?.approval?.approval != null && (
+        <div className="text-xs text-amber-400 mb-2">
+          Approval may be required before swap.
+        </div>
+      )}
 
       {mode && side && (
         <div className="text-xs text-neutral-500 mb-2 font-mono">

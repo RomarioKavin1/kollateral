@@ -24,51 +24,88 @@ interface QuoteRequestBody {
   token?: string;
 }
 
-export async function POST(req: Request) {
-  const body = (await req.json()) as QuoteRequestBody;
-  const action = body.action ?? "quote";
+// Reads the response body as JSON if possible, falling back to raw text so
+// upstream error payloads (which aren't guaranteed to be JSON) are never lost.
+async function readBody(r: Response): Promise<unknown> {
+  const text = await r.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
 
-  if (action === "approval") {
-    const approval = await fetch(`${BASE}/check_approval`, {
+function upstreamError(r: Response, detail: unknown) {
+  return Response.json(
+    { error: "uniswap_api_error", status: r.status, detail },
+    { status: 502 },
+  );
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = (await req.json()) as QuoteRequestBody;
+    const action = body.action ?? "quote";
+
+    if (action === "approval") {
+      const approvalRes = await fetch(`${BASE}/check_approval`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          walletAddress: body.walletAddress ?? body.swapper,
+          token: body.token ?? body.tokenIn,
+          amount: body.amount,
+          chainId: body.chainId,
+        }),
+      });
+      if (!approvalRes.ok) {
+        return upstreamError(approvalRes, await readBody(approvalRes));
+      }
+      const approval = await approvalRes.json();
+      return NextResponse.json({ step: "approval", approval });
+    }
+
+    const quoteRes = await fetch(`${BASE}/quote`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
-        walletAddress: body.walletAddress ?? body.swapper,
-        token: body.token ?? body.tokenIn,
+        type: "EXACT_INPUT",
+        tokenIn: body.tokenIn,
+        tokenOut: body.tokenOut,
+        tokenInChainId: body.chainId,
+        tokenOutChainId: body.chainId,
         amount: body.amount,
-        chainId: body.chainId,
+        swapper: body.swapper,
+        autoSlippage: "DEFAULT",
+        // ALWAYS restrict to on-chain protocols: UniswapX carries a $300
+        // minimum order size that breaks the small demo swap amounts here.
+        protocols: ["V2", "V3", "V4"],
       }),
-    }).then((r) => r.json());
-    return NextResponse.json({ step: "approval", approval });
+    });
+    if (!quoteRes.ok) {
+      return upstreamError(quoteRes, await readBody(quoteRes));
+    }
+    const quote = await quoteRes.json();
+
+    if (quote.permitData) {
+      return NextResponse.json({ step: "permit", quote });
+    }
+
+    const swapRes = await fetch(`${BASE}/swap`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ quote: quote.quote }),
+    });
+    if (!swapRes.ok) {
+      return upstreamError(swapRes, await readBody(swapRes));
+    }
+    const swap = await swapRes.json();
+
+    return NextResponse.json({ step: "swap", quote, swap });
+  } catch (e) {
+    return Response.json(
+      { error: "proxy_exception", detail: String(e) },
+      { status: 500 },
+    );
   }
-
-  const quote = await fetch(`${BASE}/quote`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({
-      type: "EXACT_INPUT",
-      tokenIn: body.tokenIn,
-      tokenOut: body.tokenOut,
-      tokenInChainId: body.chainId,
-      tokenOutChainId: body.chainId,
-      amount: body.amount,
-      swapper: body.swapper,
-      autoSlippage: "DEFAULT",
-      // ALWAYS restrict to on-chain protocols: UniswapX carries a $300
-      // minimum order size that breaks the small demo swap amounts here.
-      protocols: ["V2", "V3", "V4"],
-    }),
-  }).then((r) => r.json());
-
-  if (quote.permitData) {
-    return NextResponse.json({ step: "permit", quote });
-  }
-
-  const swap = await fetch(`${BASE}/swap`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ quote: quote.quote }),
-  }).then((r) => r.json());
-
-  return NextResponse.json({ step: "swap", quote, swap });
 }
