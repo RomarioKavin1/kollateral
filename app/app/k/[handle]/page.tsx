@@ -8,7 +8,7 @@ import { CallDetail } from "@/components/CallDetail";
 import { SaidVsDid } from "@/components/SaidVsDid";
 import { EquityCurveChart } from "@/components/DitheredChart";
 import { DitherArt } from "@/components/DitherArt";
-import { AnimatedNumber, TokenPerfChart, ReturnsTimeline, DirectionSplit } from "@/components/DossierCharts";
+import { AnimatedNumber, TokenPerfChart, ReturnsTimeline, DirectionSplit, Sparkline, SignalMix, MiniBars } from "@/components/DossierCharts";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
 type Tab = "calls" | "said-vs-did";
@@ -111,6 +111,36 @@ export default function DossierPage() {
       }));
   }, [dossier]);
 
+  const sparkValues = useMemo(() => curve.map((p) => p.call), [curve]);
+
+  const templateSeg = useMemo(() => {
+    const c: Record<string, number> = { DIRECTIONAL: 0, TARGET_CALL: 0, GEM_SHILL: 0, AMBIGUOUS: 0 };
+    for (const call of dossier?.calls ?? []) if (call.template in c) c[call.template]++;
+    return [
+      { label: "directional", value: c.DIRECTIONAL, color: "var(--gain)" },
+      { label: "target", value: c.TARGET_CALL, color: "var(--signal)" },
+      { label: "gem shill", value: c.GEM_SHILL, color: "var(--loss)" },
+      { label: "ambiguous", value: c.AMBIGUOUS, color: "var(--faint)" },
+    ];
+  }, [dossier]);
+
+  const confBars = useMemo(() => {
+    const b = [0, 0, 0, 0];
+    for (const call of dossier?.calls ?? []) {
+      const c = call.confidence;
+      if (c < 0.3) b[0]++;
+      else if (c < 0.6) b[1]++;
+      else if (c < 0.8) b[2]++;
+      else b[3]++;
+    }
+    return [
+      { label: "lo", value: b[0] },
+      { label: "·", value: b[1] },
+      { label: "·", value: b[2] },
+      { label: "hi", value: b[3] },
+    ];
+  }, [dossier]);
+
   function handleSelect(call: DossierCall) {
     setSelected(call);
   }
@@ -187,7 +217,23 @@ export default function DossierPage() {
         </div>
       </div>
 
-      <VerdictBlock stats={dossier.stats} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20, alignItems: "stretch", marginBottom: 24 }}>
+        <VerdictBlock stats={dossier.stats} />
+        <div className="panel rise" style={{ padding: 16, display: "grid", gap: 16, alignContent: "center" }}>
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>// cumulative p&amp;l per call</div>
+            <Sparkline values={sparkValues} positive={dossier.stats.totalPnl >= 0} />
+          </div>
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>// signal mix</div>
+            <SignalMix segments={templateSeg} />
+          </div>
+          <div>
+            <div className="label" style={{ marginBottom: 8 }}>// confidence spread</div>
+            <MiniBars bars={confBars} />
+          </div>
+        </div>
+      </div>
 
       {dossier.integrity.deletedTotal > 0 && (
         <p

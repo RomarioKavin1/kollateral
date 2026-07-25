@@ -151,6 +151,74 @@ export function DirectionSplit({ longPct }: { longPct: number }) {
   );
 }
 
+// ---- mini: cumulative sparkline (inline SVG) -------------------------------
+export function Sparkline({ values, positive, height = 52 }: { values: number[]; positive: boolean; height?: number }) {
+  const uid = useId().replace(/:/g, "");
+  if (values.length < 2) return <EmptyChart label="not enough scored calls" height={height} />;
+  const w = 200;
+  const min = Math.min(...values, 0);
+  const max = Math.max(...values, 0);
+  const span = max - min || 1;
+  const y = (v: number) => height - 5 - ((v - min) / span) * (height - 10);
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * w, y(v)] as const);
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const color = positive ? "var(--gain)" : "var(--loss)";
+  const zeroY = y(0);
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} width="100%" height={height} preserveAspectRatio="none" style={{ display: "block" }}>
+      <defs>
+        <pattern id={`sp-${uid}`} patternUnits="userSpaceOnUse" width="3" height="3">
+          <circle cx="1.5" cy="1.5" r="0.6" fill={color} fillOpacity="0.55" />
+        </pattern>
+      </defs>
+      <line x1="0" y1={zeroY} x2={w} y2={zeroY} stroke="var(--line)" strokeDasharray="2 3" vectorEffect="non-scaling-stroke" />
+      <path d={`${d} L${w},${zeroY} L0,${zeroY} Z`} fill={`url(#sp-${uid})`} opacity={0.9} />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ---- mini: horizontal stacked mix bar --------------------------------------
+export function SignalMix({ segments }: { segments: { label: string; value: number; color: string }[] }) {
+  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+  const shown = segments.filter((s) => s.value > 0);
+  return (
+    <div>
+      <div style={{ display: "flex", height: 10, borderRadius: 999, overflow: "hidden", border: "1px solid var(--line)", background: "var(--bg-2)" }}>
+        {shown.map((s) => (
+          <div key={s.label} style={{ width: `${(100 * s.value) / total}%`, background: s.color }} title={`${s.label}: ${s.value}`} />
+        ))}
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10 }}>
+        {shown.map((s) => (
+          <span key={s.label} className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: s.color }} />
+            {s.label} {s.value}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- mini: tiny bar histogram ----------------------------------------------
+export function MiniBars({ bars, height = 48 }: { bars: { label: string; value: number }[]; height?: number }) {
+  const max = Math.max(1, ...bars.map((b) => b.value));
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height }}>
+      {bars.map((b, i) => (
+        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          <div
+            title={`${b.label}: ${b.value}`}
+            style={{ width: "100%", height: `${(b.value / max) * (height - 14)}px`, minHeight: 2, background: "var(--ink)", borderRadius: 2, transition: "height 0.9s var(--ease-out-expo)" }}
+          />
+          <span className="label" style={{ fontSize: 8 }}>{b.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EmptyChart({ label, height }: { label: string; height: number }) {
   return (
     <div className="label" style={{ height, display: "grid", placeItems: "center", color: "var(--muted)", border: "1px dashed var(--line)", borderRadius: "var(--radius)" }}>
