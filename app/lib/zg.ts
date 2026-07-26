@@ -198,3 +198,79 @@ export async function classifyPost(
   // rather than an error (the model answered, just not usefully).
   return { signal: null, raw: null, chatId: null, teeSignature: null, providerAddress: null, teeVerified: null };
 }
+
+// ---- 0-YAP: distill the post down to pure trade logic ---------------------
+// Powers the terminal's "0-yap" mode. Strips influencer noise (storytelling,
+// self-promo, links, hedging) and emits just the directional bias, a one-line
+// thesis, and the key price levels — via the same verifiable 0G router path
+// (verify_tee) as the classifier.
+
+const PURE_TOOL: OpenAI.Chat.ChatCompletionTool = {
+  type: "function",
+  function: {
+    name: "emit_pure_signal",
+    description: "Distill a noisy crypto post into its pure trade signal, stripping all hype and filler.",
+    parameters: {
+      type: "object",
+      properties: {
+        bias: { enum: ["long", "short", "neutral"] },
+        thesis: { type: "string", description: "One sentence, max 18 words: the actual trade logic. No hype, hedging, emojis, or links." },
+        levels: {
+          type: "array",
+          items: { type: "string" },
+          description: "Key price levels / triggers as short strings, e.g. '$1,840 support', 'target $2,000'. Empty if none stated.",
+        },
+      },
+      required: ["bias", "thesis"],
+    },
+  },
+};
+
+const PURE_SYSTEM = `You are a trading desk that strips crypto-influencer posts down to signal. Given a post, emit ONLY the pure trade logic via emit_pure_signal: the directional bias, a one-line thesis (<=18 words, no hype, no hedging, no emojis, no links), and the key price levels/triggers if stated. Cut all storytelling, self-promotion, and filler. If the post has no real trade logic, set bias "neutral" and thesis "No tradeable signal — commentary only.".`;
+
+export type PureSignal = {
+  bias: "long" | "short" | "neutral";
+  thesis: string;
+  levels: string[];
+  teeVerified: boolean | null;
+};
+
+export async function distillSignal(text: string, model = ZG_DEFAULT_MODEL, retries = 2): Promise<PureSignal | null> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const params = {
+        model,
+        tools: [PURE_TOOL],
+        tool_choice: { type: "function", function: { name: "emit_pure_signal" } },
+        messages: [
+          { role: "system", content: PURE_SYSTEM },
+          { role: "user", content: text },
+        ],
+      } as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming & { verify_tee?: boolean };
+      params.verify_tee = true;
+      const res = await getClient().chat.completions.create(params).withResponse();
+      const data = res.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- x_0g_trace is a 0G router extension
+      const teeVerified = (data as any)?.x_0g_trace?.tee_verified;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tool_calls shape
+      const tc = (data as any)?.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.name === "emit_pure_signal") {
+        const args = JSON.parse(tc.function.arguments || "{}");
+        return {
+          bias: args.bias === "long" || args.bias === "short" ? args.bias : "neutral",
+          thesis: typeof args.thesis === "string" ? args.thesis.trim() : "",
+          levels: Array.isArray(args.levels) ? args.levels.filter((x: unknown) => typeof x === "string").slice(0, 5) : [],
+          teeVerified: typeof teeVerified === "boolean" ? teeVerified : null,
+        };
+      }
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (i < retries && (isTransient(status) || status === undefined)) {
+        await sleep(1000 * (i + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+  return null;
+}
