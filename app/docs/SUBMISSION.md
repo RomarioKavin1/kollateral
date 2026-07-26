@@ -44,7 +44,7 @@ Code links point at `github.com/RomarioKavin1/kollateral` (app lives under `app/
 
 ## Uniswap Foundation — $10,000
 
-**Why we're applicable:** Every copy/fade trade executes through Uniswap. On Base mainnet we use the hosted Trading API (quote then swap) with a Developer Platform key; on Base Sepolia, where the Trading API does not index the chain, we call SwapRouter02's `exactInputSingle` directly against the live WETH/USDC v3 pools so testnet trades are real fills.
+**Why we're applicable:** Uniswap is what turns a verdict into a position. The AI scores an influencer's record, and Uniswap is the layer that lets you copy the honest callers or fade the rest in a single tap, so KOLlateral is an execution loop driven by AI signals rather than a scoreboard with a swap bolted on. We integrated it two ways for real coverage: the hosted Trading API (quote then swap) for routing on Base mainnet, and, because that API does not index Base Sepolia, direct `SwapRouter02.exactInputSingle` calls against the live WETH/USDC v3 pools on testnet, with the true output amount decoded from the swap receipt so both paths settle as genuine fills. Paired with Privy delegated signing it behaves like an agent acting on a signal: authorize once, and every Follow or Fade after that executes on-chain with no prompt.
 
 **Line of code:**
 - Trading API quote + swap (mainnet): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/execute.ts#L119
