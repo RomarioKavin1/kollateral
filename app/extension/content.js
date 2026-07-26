@@ -155,26 +155,9 @@
     if (document.getElementById(widgetRootId(handle))) return; // dup guard
     applyTheme();
 
-    // Button, inserted inline with the header's action buttons.
-    const btnWrap = document.createElement("div");
-    btnWrap.className = "kol-btn-wrap";
-    btnWrap.dataset.kolWidget = handle.toLowerCase();
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "kol-btn";
-    btn.innerHTML = `<span class="kol-mark">◇</span><span>KOLlateral</span>`;
-    btn.title = "Open full KOLlateral dossier";
-    btn.addEventListener("click", () => {
-      const url = `${BASE}/k/${encodeURIComponent(handle)}`;
-      window.open(url, "_blank", "noopener,noreferrer");
-    });
-    btnWrap.appendChild(btn);
-
-    try {
-      actionsRow.appendChild(btnWrap);
-    } catch (err) {
-      WARN("failed to insert button into actions row", err);
-    }
+    // No injected pill: it landed on its own line and pushed X's own action
+    // buttons down. The card mounts on its own below the action row, and it
+    // carries the "open dossier" link, so a separate button is redundant.
 
     // Card, inserted as its own row right after the actions row. This
     // element's id is the dup-guard marker checked by checkAndInject().
