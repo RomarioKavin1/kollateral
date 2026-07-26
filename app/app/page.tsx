@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InteractiveDither } from "@/components/InteractiveDither";
 import { DitherArt } from "@/components/DitherArt";
 import { PoweredBy } from "@/components/PoweredBy";
@@ -66,6 +66,35 @@ const SPONSOR_COPY: Record<Sponsor, HeroCopy> = {
   },
 };
 
+// Types `text` in character by character whenever it changes (on hover), with a
+// blinking caret. The first render shows it whole — the type-in is a hover
+// reaction, not a page-load effect.
+function Typewriter({ text, speed = 34 }: { text: string; speed?: number }) {
+  const [shown, setShown] = useState(text);
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      setShown(text);
+      return;
+    }
+    setShown("");
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      setShown(text.slice(0, i));
+      if (i >= text.length) window.clearInterval(id);
+    }, speed);
+    return () => window.clearInterval(id);
+  }, [text, speed]);
+  return (
+    <>
+      {shown}
+      <span className="tw-caret" aria-hidden />
+    </>
+  );
+}
+
 export default function HomePage() {
   const [hovered, setHovered] = useState<Sponsor | null>(null);
   const active = hovered ? SPONSOR_COPY[hovered] : DEFAULT;
@@ -121,7 +150,7 @@ export default function HomePage() {
               maxWidth: "16ch",
             }}
           >
-            <span key={swapKey} className="hero-swap">{active.heading}</span>
+            <Typewriter text={active.heading} />
           </h1>
 
           <p

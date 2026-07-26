@@ -103,6 +103,16 @@ h1, h2, h3, h4 {
 }
 .hero-swap { animation: heroSwap 0.42s var(--ease-out-quart) both; display: inline-block; }
 @media (prefers-reduced-motion: reduce) { .hero-swap { animation: none; } }
+/* blinking caret trailing the typed hero heading */
+@keyframes twBlink { 0%, 48% { opacity: 1; } 49%, 100% { opacity: 0; } }
+.tw-caret {
+  display: inline-block;
+  width: 0.07em; min-width: 3px; height: 0.74em;
+  margin-left: 0.06em; vertical-align: -0.04em;
+  background: currentColor;
+  animation: twBlink 0.9s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) { .tw-caret { animation: none; } }
 .sponsor {
   display: inline-block;
   background-color: transparent;
