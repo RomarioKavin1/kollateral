@@ -96,14 +96,13 @@ Install guide, screenshots, and a one-click download live at [kollateral.vercel.
 
 ```
 kollateral/
-├── app/            Next.js 16 App Router application (see app/README.md for full dev docs)
-│   ├── app/        routes + API handlers
-│   ├── lib/        integrations: zg.ts (0G), subgraph.ts (Graph), onchain-swap.ts + execute.ts (Uniswap), privy.ts, networks.ts, db.ts
-│   ├── scripts/    the indexing pipeline (scrape, classify, price, sync wallets, watch copy/fade)
-│   └── seed/       committed SQLite snapshot so the app renders real data on clone
-├── docs/
-│   └── SUBMISSION.md   ETHGlobal submission answers and per-prize applications
-├── FEEDBACK.md     Uniswap developer feedback
+├── app/                    Next.js 16 App Router application (see app/README.md for full dev docs)
+│   ├── app/                routes + API handlers
+│   ├── lib/                integrations: zg.ts (0G), subgraph.ts (Graph), onchain-swap.ts + execute.ts (Uniswap), privy.ts, networks.ts, db.ts
+│   ├── scripts/            the indexing pipeline (read calls, classify, price, sync wallets, watch copy/fade)
+│   ├── seed/               committed SQLite snapshot so the app renders real data on clone
+│   └── docs/SUBMISSION.md  ETHGlobal submission answers and per-prize applications
+├── FEEDBACK.md             Uniswap developer feedback (canonical, linked from the Uniswap form)
 └── README.md
 ```
 

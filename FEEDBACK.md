@@ -34,18 +34,23 @@ We integrated Uniswap two ways to get real coverage on both networks:
 - The Trading API is clean where it is supported. One `/quote`, then `/swap`, and you have calldata ready to send. Wiring the mainnet path took very little time.
 - Calling `SwapRouter02.exactInputSingle` directly was straightforward once we had the ABI right. The struct-argument shape is easy to encode with viem, and swaps landed on the first try against the live pool.
 - Reading the actual output from the swap receipt (the `Transfer` of `tokenOut` into the wallet) gave us an exact fill to store, which is what makes the portfolio show a real number rather than an estimate.
+- `check_approval` composed cleanly. Routing it and `/quote` through one server-side handler via an `action` field kept the API key off the client without a second route, and it behaved exactly as expected.
 
 ## What cost us time
 
 - **The Trading API does not cover Base Sepolia.** This was the main blocker. The API returns "no route" / `ResourceNotFound` for pairs whose v3 pools are actually deployed and liquid on-chain. We confirmed WETH/USDC pools exist across fee tiers via the factory, then had to bypass the API entirely and call the router ourselves for testnet. A hackathon is exactly where teams build and demo on a testnet, so this gap cost us the most hours.
 - **SwapRouter02 dropped the `deadline` field** from `exactInputSingle` compared to the original SwapRouter. We initially encoded the old struct shape and the call reverted with no obvious reason. Documenting the router-version differences prominently would save this class of debugging.
-- **Route provenance is opaque.** A quote does not clearly say whether it resolved to a UniswapX route or a plain on-chain route, which matters when you are deciding how to execute and what to show the user.
+- **UniswapX is in the default `protocols` set, and its order minimum silently kills small swaps.** With the default protocol list, our roughly 0.001 WETH testnet and demo quotes routed nowhere, because UniswapX carries an order minimum well above a demo-sized trade. The fix was to pass `protocols: ["V2","V3","V4"]` explicitly on every `/quote`, but nothing in the response said that was the problem. Returning a structured "below minimum" error, instead of an opaque non-route, would have saved hours.
+- **Route provenance is opaque.** A quote does not clearly say whether it resolved to a UniswapX route or a plain on-chain route, which is the flip side of the point above and matters when an agent is deciding how to execute and what to show the user.
+- **The `Accept` header is load-bearing but undocumented as such.** Omitting `Accept: application/json`, or sending a looser value, changed the response shape we got back in early testing. The example curl implies it; it is worth stating outright.
+- **The permit-versus-swap branch forces a two-step client flow that is not obvious from the quote alone.** You only learn a Permit2 signature is required by checking for `permitData` on the quote response, then signing and threading it into `/swap`. A one-line note on the quote endpoint that a permit step may follow would make this discoverable.
 
 ## Suggestions
 
 - Either index Base Sepolia pools in the Trading API, or state plainly at the top of the docs that the Trading API is mainnet-only, so teams do not lose hours assuming their request shape is wrong.
 - Add a short "which router am I calling" page that spells out the `exactInputSingle` struct per router version (the missing `deadline` on SwapRouter02 especially).
-- Surface in the quote response whether the route is UniswapX versus a direct on-chain swap.
+- Surface in the quote response whether the route is UniswapX versus a direct on-chain swap, and return a structured "below minimum order size" error instead of an opaque non-route.
+- Call out in the quickstart that `Accept: application/json` is required and that a Permit2 signing step may follow a quote.
 
 ## Ease of use
 
