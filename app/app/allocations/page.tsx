@@ -1,166 +1,143 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { DitherArt } from "@/components/DitherArt";
-import type { InfluencerSummary } from "@/app/api/influencers/route";
+import { CreatorSearch, type CreatorOption } from "@/components/CreatorSearch";
 
 type Mode = "copy" | "fade";
-type CapType = "fixed_usd" | "percent";
 
-interface Allocation {
-  id?: string | number;
+interface Override {
+  id: number;
   handle: string;
+  displayName: string | null;
   mode: Mode;
-  capType: CapType;
-  capValue: number;
-  createdAt?: string;
+  quickUsd: number;
+  active: number;
 }
 
-// The /api/allocations contract isn't locked down yet (built in parallel),
-// so accept either a bare array or `{ allocations: [...] }`.
-function normalizeAllocations(json: unknown): Allocation[] {
-  if (Array.isArray(json)) return json as Allocation[];
-  if (json && typeof json === "object" && Array.isArray((json as { allocations?: unknown }).allocations)) {
-    return (json as { allocations: Allocation[] }).allocations;
-  }
-  return [];
-}
-
-const fieldLabel: React.CSSProperties = { marginBottom: 6, display: "block" };
 const fieldControl: React.CSSProperties = {
-  width: "100%",
-  background: "var(--bg)",
-  border: "1px solid var(--line)",
-  borderRadius: "var(--radius)",
-  color: "var(--ink)",
-  fontFamily: "var(--font-mono)",
-  fontSize: 13,
-  padding: "10px 12px",
-  outline: "none",
+  width: "100%", background: "var(--bg)", border: "1px solid var(--line-strong)", borderRadius: "var(--radius)",
+  color: "var(--ink)", fontFamily: "var(--font-mono)", fontSize: 14, padding: "10px 12px", outline: "none",
 };
-const btnPrimary: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  letterSpacing: "0.1em",
-  textTransform: "uppercase",
-  border: "1px solid var(--ink)",
-  borderRadius: "var(--radius)",
-  padding: "10px 22px",
-  background: "var(--ink)",
-  color: "var(--bg)",
-  cursor: "pointer",
+const btn: React.CSSProperties = {
+  fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase",
+  border: "1px solid var(--ink)", borderRadius: "var(--radius)", padding: "10px 20px",
+  background: "var(--ink)", color: "var(--bg)", cursor: "pointer",
 };
+const ghost: React.CSSProperties = { ...btn, background: "transparent", color: "var(--muted)", borderColor: "var(--line-strong)" };
+
 export default function AllocationsPage() {
   const { ready, authenticated, login, getAccessToken } = usePrivy();
 
-  const [influencers, setInfluencers] = useState<InfluencerSummary[] | null>(null);
-  const [influencersError, setInfluencersError] = useState<string | null>(null);
+  const [creators, setCreators] = useState<CreatorOption[]>([]);
+  const [globalQuick, setGlobalQuick] = useState<number>(1);
+  const [globalInput, setGlobalInput] = useState("1");
+  const [overrides, setOverrides] = useState<Override[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savingGlobal, setSavingGlobal] = useState(false);
+  const [globalMsg, setGlobalMsg] = useState<string | null>(null);
 
-  const [allocations, setAllocations] = useState<Allocation[] | null>(null);
-  const [loadingAllocations, setLoadingAllocations] = useState(false);
-  const [allocationsError, setAllocationsError] = useState<string | null>(null);
+  // override draft
+  const [ovHandle, setOvHandle] = useState<string | null>(null);
+  const [ovAmount, setOvAmount] = useState("");
+  const [ovMode, setOvMode] = useState<Mode>("copy");
+  const [ovBusy, setOvBusy] = useState(false);
+  const [ovMsg, setOvMsg] = useState<string | null>(null);
 
-  const [handle, setHandle] = useState("");
-  const [mode, setMode] = useState<Mode>("copy");
-  const [capType, setCapType] = useState<CapType>("fixed_usd");
-  const [capValue, setCapValue] = useState("100");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [submitOk, setSubmitOk] = useState(false);
-
-  // Trending/known handles for the picker — reuses the same list as Home.
   useEffect(() => {
-    let cancelled = false;
     fetch("/api/influencers")
-      .then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json() as Promise<InfluencerSummary[]>;
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setInfluencers(data);
-          if (data.length > 0) setHandle((h) => h || data[0].handle);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setInfluencersError(String(e));
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: { handle: string; display_name: string | null }[]) => setCreators(d.map((c) => ({ handle: c.handle, display_name: c.display_name }))))
+      .catch(() => setCreators([]));
   }, []);
 
-  const loadAllocations = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!authenticated) return;
-    setLoadingAllocations(true);
-    setAllocationsError(null);
+    setLoading(true);
+    setError(null);
     try {
       const token = await getAccessToken();
-      const res = await fetch("/api/allocations", {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const res = await fetch("/api/allocations", { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
       if (!res.ok) throw new Error(`${res.status}`);
-      const json = await res.json();
-      setAllocations(normalizeAllocations(json));
+      const json = (await res.json()) as { globalQuickUsd: number; overrides: Override[] };
+      setGlobalQuick(json.globalQuickUsd);
+      setGlobalInput(String(json.globalQuickUsd));
+      setOverrides(json.overrides ?? []);
     } catch (e) {
-      setAllocationsError(String(e));
+      setError(String(e));
     } finally {
-      setLoadingAllocations(false);
+      setLoading(false);
     }
   }, [authenticated, getAccessToken]);
 
   useEffect(() => {
-    void loadAllocations();
-  }, [loadAllocations]);
+    void load();
+  }, [load]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const trimmedHandle = handle.trim().replace(/^@/, "");
-    const parsedCapValue = Number(capValue);
-    if (!trimmedHandle || Number.isNaN(parsedCapValue)) return;
+  async function post(body: unknown) {
+    const token = await getAccessToken();
+    const res = await fetch("/api/allocations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error((json && json.error) || `${res.status}`);
+    return json;
+  }
 
-    setSubmitting(true);
-    setSubmitError(null);
-    setSubmitOk(false);
+  async function saveGlobal() {
+    const v = Number(globalInput);
+    if (!(v > 0)) { setGlobalMsg("enter a positive amount"); return; }
+    setSavingGlobal(true);
+    setGlobalMsg(null);
     try {
-      const token = await getAccessToken();
-      const res = await fetch("/api/allocations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          handle: trimmedHandle,
-          mode,
-          capType,
-          capValue: parsedCapValue,
-        }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(
-          (json && typeof json === "object" && "error" in json && String(json.error)) ||
-            `${res.status}`,
-        );
-      }
-      setSubmitOk(true);
-      void loadAllocations();
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : String(err));
+      await post({ global: v });
+      setGlobalQuick(v);
+      setGlobalMsg("saved");
+    } catch (e) {
+      setGlobalMsg(e instanceof Error ? e.message : "could not save");
     } finally {
-      setSubmitting(false);
+      setSavingGlobal(false);
+    }
+  }
+
+  async function addOverride() {
+    const v = Number(ovAmount);
+    if (!ovHandle) { setOvMsg("pick a creator"); return; }
+    if (!(v > 0)) { setOvMsg("enter a positive amount"); return; }
+    setOvBusy(true);
+    setOvMsg(null);
+    try {
+      await post({ handle: ovHandle, quickUsd: v, mode: ovMode });
+      setOvHandle(null);
+      setOvAmount("");
+      await load();
+    } catch (e) {
+      setOvMsg(e instanceof Error ? e.message : "could not save");
+    } finally {
+      setOvBusy(false);
+    }
+  }
+
+  async function removeOverride(handle: string) {
+    try {
+      await post({ handle, remove: true });
+      await load();
+    } catch {
+      /* ignore */
     }
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
-      <div className="label" style={{ marginBottom: 10 }}>// auto-trade configuration</div>
+    <main className="mx-auto max-w-5xl px-6" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
+      <div className="label" style={{ marginBottom: 10 }}>// auto-trade sizing · one-click copy/fade</div>
       <div style={{ borderBottom: "1px solid var(--line)", paddingBottom: 20 }}>
-        <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>Allocations</h1>
-        <p style={{ marginTop: 10, color: "var(--muted)", fontSize: 14, maxWidth: "58ch" }}>
-          Set up per-creator copy/fade rules so the backend can auto-trade on your behalf.
+        <h1 style={{ fontSize: "clamp(32px, 6vw, 56px)" }}>Quick trade amount</h1>
+        <p style={{ marginTop: 10, color: "var(--muted)", fontSize: 14, maxWidth: "60ch" }}>
+          Every Follow / Fade deploys a fixed size — no per-trade prompts. Set one global amount, then override it for specific creators.
         </p>
       </div>
 
@@ -169,149 +146,97 @@ export default function AllocationsPage() {
       {ready && !authenticated && (
         <div className="panel" style={{ marginTop: 40, padding: "28px 26px", maxWidth: 480 }}>
           <p className="label" style={{ marginBottom: 16 }}>authentication required</p>
-          <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>
-            Log in to manage allocations.
-          </p>
-          <button style={btnPrimary} onClick={() => login()}>Log in</button>
+          <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 20 }}>Log in to configure your trade sizing.</p>
+          <button style={btn} onClick={() => login()}>Log in</button>
         </div>
       )}
 
       {ready && authenticated && (
         <>
-          <section style={{ marginTop: 48 }}>
-            <div className="label" style={{ marginBottom: 14 }}>// add an allocation</div>
-            <div className="grid grid-cols-1 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)] gap-5 items-stretch">
-            <form onSubmit={handleSubmit} className="panel" style={{ padding: "26px 26px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
+          {/* ---- global quick trade amount ---- */}
+          <section style={{ marginTop: 44 }}>
+            <div className="label" style={{ marginBottom: 14 }}>// global quick trade amount</div>
+            <div className="panel" style={{ padding: "24px 26px", display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 20, alignItems: "end" }}>
               <div>
-                <span className="label" style={fieldLabel}>Creator</span>
-                {influencers && influencers.length > 0 ? (
-                  <select value={handle} onChange={(e) => setHandle(e.target.value)} style={fieldControl}>
-                    {influencers.map((inf) => (
-                      <option key={inf.handle} value={inf.handle}>
-                        @{inf.handle}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    value={handle}
-                    onChange={(e) => setHandle(e.target.value)}
-                    placeholder="handle"
-                    style={fieldControl}
-                  />
-                )}
-                {influencersError && (
-                  <span className="label" style={{ display: "block", marginTop: 6, color: "var(--loss)" }}>
-                    could not load influencer list ({influencersError}); type a handle instead
-                  </span>
-                )}
+                <span className="label" style={{ display: "block", marginBottom: 8 }}>USDC per trade</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 28, color: "var(--faint)" }}>$</span>
+                  <input className="tnum" type="number" min="0" step="any" value={globalInput} onChange={(e) => setGlobalInput(e.target.value)} style={{ ...fieldControl, fontSize: 26, fontFamily: "var(--font-display)", maxWidth: 220 }} />
+                </div>
+                <p className="label" style={{ marginTop: 10, color: "var(--faint)" }}>
+                  on testnet a buy spends this many USDC; a sell trades the same size in WETH.
+                </p>
               </div>
-
-              <div>
-                <span className="label" style={fieldLabel}>Mode</span>
-                <select value={mode} onChange={(e) => setMode(e.target.value as Mode)} style={fieldControl}>
-                  <option value="copy">copy</option>
-                  <option value="fade">fade</option>
-                </select>
-              </div>
-
-              <div>
-                <span className="label" style={fieldLabel}>Cap type</span>
-                <select value={capType} onChange={(e) => setCapType(e.target.value as CapType)} style={fieldControl}>
-                  <option value="fixed_usd">fixed USD</option>
-                  <option value="percent">percent</option>
-                </select>
-              </div>
-
-              <div>
-                <span className="label" style={fieldLabel}>Cap value</span>
-                <input
-                  type="number"
-                  value={capValue}
-                  onChange={(e) => setCapValue(e.target.value)}
-                  min="0"
-                  step="any"
-                  style={fieldControl}
-                  className="tnum"
-                />
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 4 }}>
-                <button type="submit" disabled={submitting} style={{ ...btnPrimary, opacity: submitting ? 0.6 : 1 }}>
-                  {submitting ? "Saving…" : "Add allocation"}
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button style={{ ...btn, opacity: savingGlobal ? 0.6 : 1 }} disabled={savingGlobal} onClick={() => void saveGlobal()}>
+                  {savingGlobal ? "saving…" : "Save"}
                 </button>
-                {submitError && (
-                  <span className="label" style={{ color: "var(--loss)" }}>could not save ({submitError})</span>
-                )}
-                {submitOk && <span className="label" style={{ color: "var(--gain)" }}>saved.</span>}
+                {globalMsg && <span className="label" style={{ color: globalMsg === "saved" ? "var(--gain)" : "var(--loss)" }}>{globalMsg}</span>}
               </div>
-            </form>
-
-            <div
-              style={{
-                position: "relative",
-                background: "var(--dark)",
-                borderRadius: "var(--radius)",
-                overflow: "hidden",
-                minHeight: 320,
-              }}
-            >
-              <DitherArt shape="arrows" invert gap={4} className="h-full w-full" />
-              <div
-                className="label"
-                style={{ position: "absolute", bottom: 14, left: 16, right: 16, color: "var(--dark-ink)", opacity: 0.75 }}
-              >
-                copy the honest, fade the rest, routed on-chain
-              </div>
-            </div>
             </div>
           </section>
 
-          <section style={{ marginTop: 64 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid var(--line)", paddingBottom: 12 }}>
-              <h2 style={{ fontSize: "clamp(20px, 3.5vw, 28px)" }}>Your allocations</h2>
-              {allocations && allocations.length > 0 && (
-                <span className="label tnum">{allocations.length} configured</span>
-              )}
+          {/* ---- per-creator overrides ---- */}
+          <section style={{ marginTop: 48 }}>
+            <div className="label" style={{ marginBottom: 14 }}>// per-creator overrides</div>
+            <div className="panel" style={{ padding: "22px 24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) 130px 120px auto", gap: 12, alignItems: "end" }}>
+                <div>
+                  <span className="label" style={{ display: "block", marginBottom: 8 }}>Creator</span>
+                  {ovHandle ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, ...fieldControl, paddingTop: 8, paddingBottom: 8 }}>
+                      <span style={{ fontFamily: "var(--font-display)", fontWeight: 600 }}>@{ovHandle}</span>
+                      <button onClick={() => setOvHandle(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "var(--faint)", cursor: "pointer" }}>✕</button>
+                    </div>
+                  ) : (
+                    <CreatorSearch creators={creators} onSelect={(h) => setOvHandle(h)} placeholder="search indexed creators…" />
+                  )}
+                </div>
+                <div>
+                  <span className="label" style={{ display: "block", marginBottom: 8 }}>Amount ($)</span>
+                  <input className="tnum" type="number" min="0" step="any" value={ovAmount} onChange={(e) => setOvAmount(e.target.value)} placeholder="5" style={fieldControl} />
+                </div>
+                <div>
+                  <span className="label" style={{ display: "block", marginBottom: 8 }}>Default</span>
+                  <select value={ovMode} onChange={(e) => setOvMode(e.target.value as Mode)} style={fieldControl}>
+                    <option value="copy">copy</option>
+                    <option value="fade">fade</option>
+                  </select>
+                </div>
+                <button style={{ ...btn, opacity: ovBusy ? 0.6 : 1 }} disabled={ovBusy} onClick={() => void addOverride()}>
+                  {ovBusy ? "…" : "Add"}
+                </button>
+              </div>
+              {ovMsg && <div className="label" style={{ marginTop: 10, color: "var(--loss)" }}>{ovMsg}</div>}
             </div>
 
-            {loadingAllocations && <div className="label flick" style={{ padding: "32px 0" }}>loading allocations…</div>}
-            {!loadingAllocations && allocationsError && (
-              <div className="label" style={{ padding: "32px 0", color: "var(--loss)" }}>
-                could not load allocations ({allocationsError})
+            {/* list */}
+            <div style={{ marginTop: 20 }}>
+              {loading && <div className="label flick" style={{ padding: "20px 0" }}>loading…</div>}
+              {error && <div className="label" style={{ padding: "20px 0", color: "var(--loss)" }}>could not load ({error})</div>}
+              {!loading && !error && overrides.length === 0 && (
+                <div className="label" style={{ padding: "18px 2px", color: "var(--muted)" }}>
+                  no overrides — every creator uses the global ${globalQuick.toFixed(2)}.
+                </div>
+              )}
+              {overrides.map((o) => (
+                <div key={o.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr auto", gap: 16, alignItems: "center", padding: "14px 2px", borderBottom: "1px solid var(--line)" }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 600 }}>@{o.handle}</span>
+                  <span className="label" style={{ color: o.mode === "fade" ? "var(--loss)" : "var(--gain)" }}>{o.mode} default</span>
+                  <span className="tnum" style={{ fontSize: 15 }}>${o.quickUsd.toFixed(2)} <span className="label" style={{ color: "var(--faint)" }}>/ trade</span></span>
+                  <button style={{ ...ghost, padding: "6px 12px", justifySelf: "end" }} onClick={() => void removeOverride(o.handle)}>Remove</button>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={{ marginTop: 48 }}>
+            <div style={{ position: "relative", background: "var(--dark)", borderRadius: "var(--radius)", overflow: "hidden", height: 120 }}>
+              <DitherArt shape="arrows" invert gap={4} className="h-full w-full" />
+              <div className="label" style={{ position: "absolute", bottom: 14, left: 16, right: 16, color: "var(--dark-ink)", opacity: 0.75 }}>
+                copy the honest, fade the rest · fixed size, routed on-chain
               </div>
-            )}
-            {!loadingAllocations && !allocationsError && allocations && allocations.length === 0 && (
-              <div className="label" style={{ padding: "32px 0", color: "var(--muted)" }}>no allocations yet.</div>
-            )}
-            {!loadingAllocations && !allocationsError && allocations && allocations.length > 0 && (
-              <div style={{ marginTop: 4 }}>
-                {allocations.map((a, i) => (
-                  <div
-                    key={a.id ?? `${a.handle}-${i}`}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1.4fr 1fr 1fr 1fr",
-                      gap: 16,
-                      alignItems: "center",
-                      padding: "16px 4px",
-                      borderBottom: "1px solid var(--line)",
-                    }}
-                  >
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 600 }}>
-                      @{a.handle}
-                    </span>
-                    <span className="label" style={{ color: a.mode === "fade" ? "var(--loss)" : "var(--gain)" }}>
-                      {a.mode}
-                    </span>
-                    <span className="label">{a.capType === "fixed_usd" ? "fixed usd" : "percent"}</span>
-                    <span className="tnum" style={{ fontSize: 14, textAlign: "right" }}>
-                      {a.capType === "percent" ? `${a.capValue}%` : `$${a.capValue}`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+            </div>
           </section>
         </>
       )}

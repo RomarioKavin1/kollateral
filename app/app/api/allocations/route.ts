@@ -2,54 +2,75 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { verifyUser } from "@/lib/privy";
 
-// GET → the signed-in user's per-creator allocations.
+const DEFAULT_QUICK_USD = 1;
+
+// GET → the user's global quick-trade amount + every per-creator override.
 export async function GET(req: Request) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const db = getDb();
-  const rows = db
+
+  const row = db.prepare("SELECT quick_trade_usd FROM users WHERE id=?").get(user.userId) as { quick_trade_usd: number | null } | undefined;
+  const globalQuickUsd = row?.quick_trade_usd ?? DEFAULT_QUICK_USD;
+
+  const overrides = db
     .prepare(
-      `SELECT a.id, i.handle, a.mode, a.cap_type AS capType, a.cap_value AS capValue, a.active
+      `SELECT a.id, i.handle, i.display_name AS displayName, a.mode, a.cap_value AS quickUsd, a.active
        FROM allocations a JOIN influencers i ON i.id = a.influencer_id
-       WHERE a.user_id = ? ORDER BY a.created_at DESC`
+       WHERE a.user_id = ? AND a.active = 1 ORDER BY a.created_at DESC`
     )
     .all(user.userId);
-  return NextResponse.json({ allocations: rows });
+
+  return NextResponse.json({ globalQuickUsd, overrides });
 }
 
 interface AllocBody {
-  handle?: string;
+  global?: number; // set the global quick-trade amount
+  handle?: string; // set / remove a per-creator override
+  quickUsd?: number;
   mode?: "copy" | "fade";
-  capType?: "fixed_usd" | "percent";
-  capValue?: number;
+  remove?: boolean;
 }
 
-// POST → create/update the allocation for one creator (upsert on user+creator).
+// POST → set the global amount OR upsert / remove a per-creator override.
 export async function POST(req: Request) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const b = (await req.json()) as AllocBody;
-  if (!b.handle || (b.mode !== "copy" && b.mode !== "fade")) {
-    return NextResponse.json({ error: "handle and mode(copy|fade) required" }, { status: 400 });
-  }
-  if (b.capType !== "fixed_usd" && b.capType !== "percent") {
-    return NextResponse.json({ error: "capType must be fixed_usd|percent" }, { status: 400 });
-  }
-  if (typeof b.capValue !== "number" || b.capValue <= 0) {
-    return NextResponse.json({ error: "capValue must be a positive number" }, { status: 400 });
-  }
+  const b = (await req.json().catch(() => ({}))) as AllocBody;
   const db = getDb();
-  const inf = db.prepare("SELECT id FROM influencers WHERE handle=?").get(b.handle) as
-    | { id: number }
-    | undefined;
+
+  // 1) Global quick-trade amount.
+  if (typeof b.global === "number") {
+    if (!(b.global > 0) || b.global > 1_000_000) {
+      return NextResponse.json({ error: "global must be a positive USD amount" }, { status: 400 });
+    }
+    db.prepare("UPDATE users SET quick_trade_usd=? WHERE id=?").run(Math.round(b.global * 100) / 100, user.userId);
+    return NextResponse.json({ ok: true, globalQuickUsd: Math.round(b.global * 100) / 100 });
+  }
+
+  // 2) Per-creator override (create / update / remove).
+  if (!b.handle) return NextResponse.json({ error: "handle required" }, { status: 400 });
+  const handle = b.handle.trim().replace(/^@/, "");
+  const inf = db.prepare("SELECT id FROM influencers WHERE handle=?").get(handle) as { id: number } | undefined;
   if (!inf) return NextResponse.json({ error: "unknown creator" }, { status: 404 });
+
+  if (b.remove) {
+    db.prepare("UPDATE allocations SET active=0 WHERE user_id=? AND influencer_id=?").run(user.userId, inf.id);
+    return NextResponse.json({ ok: true, removed: handle });
+  }
+
+  if (typeof b.quickUsd !== "number" || !(b.quickUsd > 0)) {
+    return NextResponse.json({ error: "quickUsd must be a positive USD amount" }, { status: 400 });
+  }
+  const mode = b.mode === "fade" ? "fade" : "copy";
+  const amt = Math.round(b.quickUsd * 100) / 100;
 
   db.prepare(
     `INSERT INTO allocations (user_id, influencer_id, mode, cap_type, cap_value, active, created_at)
      VALUES (?,?,?,?,?,1,?)
      ON CONFLICT(user_id, influencer_id)
-     DO UPDATE SET mode=excluded.mode, cap_type=excluded.cap_type, cap_value=excluded.cap_value, active=1`
-  ).run(user.userId, inf.id, b.mode, b.capType, b.capValue, Math.floor(Date.now() / 1000));
+     DO UPDATE SET mode=excluded.mode, cap_value=excluded.cap_value, active=1`
+  ).run(user.userId, inf.id, mode, "fixed_usd", amt, Math.floor(Date.now() / 1000));
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, handle, quickUsd: amt, mode });
 }
