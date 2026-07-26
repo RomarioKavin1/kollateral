@@ -21,3 +21,54 @@ The AI that reads and judges every call runs on 0G Compute, and that inference i
 The Graph is the live on-chain data all of that scoring reasons over. We query the Uniswap v2 and v3 subgraphs through the gateway (v3 first, v2 as a fallback) for two things the product cannot work without: pricing every call at its exact posted timestamp, so a claim turns into a real return, and pulling a caller's own swap history to run the said-versus-did check. The forensic layer takes each call the AI extracted and matches it against what that wallet actually did on-chain, so a contradiction is grounded in live Subgraph data rather than a static snapshot.
 
 Execution is Uniswap. On Base mainnet we use the hosted Trading API. Base Sepolia is where it got hacky: the Trading API does not index that chain, so we located the deployed WETH/USDC v3 pools on-chain and call SwapRouter02 directly, quoting in USDC and then decoding the ERC-20 Transfer out of the swap receipt so the portfolio records the real fill instead of a nominal number. Wallets and signing are Privy: each user gets an embedded self-custody wallet and delegates a session signer once, after which every Follow or Fade executes server-side with no popup.
+
+---
+
+# Prize applications
+
+Code links point at `github.com/RomarioKavin1/kollateral` (app lives under `app/`); push `main` before submitting so the line numbers resolve.
+
+## The Graph — $15,000
+
+**Why we're applicable:** The Graph is KOLlateral's live source of on-chain data. An AI and forensic layer reads the Uniswap v2 and v3 subgraphs to price every influencer call at its exact posted timestamp and to pull each caller's own swap history, then reasons over that live data to score their record and flag said-versus-did contradictions. Nothing is mocked, and without the subgraphs there is no price and no wallet check.
+
+**Line of code:**
+- Pricing, v3 then v2 fallback: https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/subgraph.ts#L41
+- Wallet swap history for the said-versus-did check: https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/subgraph.ts#L114
+- Gateway endpoint (by subgraph id): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/subgraph.ts#L14
+- Consumed by the scoring layer: https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/graph.ts#L17
+
+**Ease of use (1-10):** 8
+
+**Additional feedback:** The gateway plus API key plus subgraph-by-id flow was clean and fast to wire up, and the Explorer made finding the right Uniswap subgraph ids easy. The friction was historical pricing: getting a token's price at a specific past timestamp meant querying hourly/daily buckets and choosing the nearest one per subgraph, and reconciling v3 (hourly) with v2 (daily) granularity in our own code. A standardized "price at timestamp" query, or a shared price schema across AMMs, would remove most of that glue.
+
+## Uniswap Foundation — $10,000
+
+**Why we're applicable:** Every copy/fade trade executes through Uniswap. On Base mainnet we use the hosted Trading API (quote then swap) with a Developer Platform key; on Base Sepolia, where the Trading API does not index the chain, we call SwapRouter02's `exactInputSingle` directly against the live WETH/USDC v3 pools so testnet trades are real fills.
+
+**Line of code:**
+- Trading API quote + swap (mainnet): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/execute.ts#L119
+- Trading API behind the manual swap ticket: https://github.com/RomarioKavin1/kollateral/blob/main/app/api/quote/route.ts#L5
+- Direct SwapRouter02 exactInputSingle + receipt decode (testnet): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/onchain-swap.ts#L130
+
+**Ease of use (1-10):** 6
+
+**Additional feedback:** The Trading API is clean where it is supported: one /quote, then /swap, and you have calldata. The blocker was Base Sepolia. The API returns "no route" / ResourceNotFound for pairs whose v3 pools are actually deployed and liquid on-chain (we confirmed WETH/USDC across all fee tiers via the factory), so we had to bypass it and call SwapRouter02 ourselves for testnet. Either index testnet pools or state plainly in the docs that the Trading API is mainnet-only, so teams do not lose hours assuming their request shape is wrong. Surfacing whether a quote is UniswapX versus a plain on-chain route would also help.
+
+## 0G — $15,000
+
+**Why we're applicable:** The AI that classifies every post into a structured trade signal, and the 0-yap distillation, both run on 0G Compute with `verify_tee` enabled, so each inference executes in a TEE and returns an attestation. That verifiable inference is the product's core claim: a caller's score is provably the model's output and was not edited by anyone, including us.
+
+**Line of code:**
+- `verify_tee` on classification: https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/zg.ts#L164
+- `verify_tee` on the 0-yap distillation: https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/zg.ts#L250
+- Private trust-mode header (pins a TEE provider): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/zg.ts#L33
+- Provider attestation from the 0G registry (independent evidence): https://github.com/RomarioKavin1/kollateral/blob/main/app/lib/zg.ts#L109
+
+**Ease of use (1-10):** 6
+
+**Additional feedback:** The OpenAI-compatible router is the best part: existing OpenAI SDK code worked after only a base-URL and key change. Two things cost us time. First, `verify_tee` and the `X-0G-Provider-Trust-Mode: private` header are what actually produce an attested result, but they were hard to find in the docs; we landed on them by trial. Second, the broker SDK's `processResponse` could not verify router-served responses (the router returns a request id, not an EIP-191 signature to recover), so the broker verification path and the router `verify_tee` path diverge and it was unclear which to trust. Clearer docs on `verify_tee` and trust-mode, plus a list of which models are TEE-verifiable and support function calling (some 404, some reject tools), would help a lot.
+
+## Which other partners' technologies did you use?
+
+**Privy** for embedded self-custody wallets and delegated session-signer signing, so a user enables auto-trading once and every Follow/Fade after that executes with no per-trade popup. **Base** (Base mainnet and Base Sepolia) as the execution chain.
