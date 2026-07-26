@@ -170,9 +170,34 @@ export default function HomePage() {
             <span key={swapKey} className="hero-swap">{active.body}</span>
           </p>
 
+          <Link
+            href="/extension"
+            className="rise hero-ext"
+            style={{
+              animationDelay: "250ms",
+              marginTop: 22,
+              width: "fit-content",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "7px 13px 7px 11px",
+              border: "1px solid var(--line-strong)",
+              borderRadius: 999,
+              fontFamily: "var(--font-mono, ui-monospace)",
+              fontSize: 12,
+              letterSpacing: "0.01em",
+              color: "var(--muted)",
+              textDecoration: "none",
+            }}
+          >
+            <span aria-hidden style={{ color: "var(--signal)", fontSize: 13 }}>◇</span>
+            <span>browser extension · receipts on every X profile</span>
+            <span aria-hidden style={{ color: "var(--faint)" }}>↗</span>
+          </Link>
+
           <div
             className="rise"
-            style={{ animationDelay: "300ms", marginTop: 30 }}
+            style={{ animationDelay: "360ms", marginTop: 30 }}
           >
             <div
               className="label"
