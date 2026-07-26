@@ -8,6 +8,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // see the note below. Edit this list by hand as tracked influencers change.
 const TRACKED: string[] = [
   "CryptoKaleo",
+  "0xNonceSense",
+  "formanite602",
+  "MerlijnTrader",
+  "Crypto__Haris",
 ];
 
 const POLL_INTERVAL_MS = 90_000;
