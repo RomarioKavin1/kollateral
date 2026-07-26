@@ -6,10 +6,10 @@
   // ---------------------------------------------------------------------
   // Config
   // ---------------------------------------------------------------------
-  // Live demo runs on localhost with a live indexer. Swap to the deployed
-  // instance below if you're not running the app locally:
-  //   const BASE = "https://app-opal-omega-44.vercel.app";
-  const BASE = "http://localhost:3000";
+  // The deployed app shares one Turso DB with the local live indexer, so this
+  // works out of the box. Swap to localhost if you're running the app locally:
+  //   const BASE = "http://localhost:3000";
+  const BASE = "https://kollateral.vercel.app";
 
   const LOG = (...args) => console.log("[KOLlateral]", ...args);
   const WARN = (...args) => console.warn("[KOLlateral]", ...args);

@@ -18,6 +18,7 @@
   },
   "host_permissions": [
     "http://localhost:3000/*",
+    "https://kollateral.vercel.app/*",
     "https://app-opal-omega-44.vercel.app/*"
   ],
   "content_scripts": [
