@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { InteractiveDither } from "@/components/InteractiveDither";
 import { DitherArt } from "@/components/DitherArt";
 import { PoweredBy } from "@/components/PoweredBy";
@@ -563,6 +564,33 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* ---- extension CTA ---- */}
+      <section className="mx-auto max-w-6xl px-6" style={{ padding: "0 24px clamp(48px, 8vw, 90px)" }}>
+        <Link
+          href="/extension"
+          className="scan"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            padding: "18px 22px",
+            border: "1px solid var(--line)",
+            borderRadius: "var(--radius)",
+            textDecoration: "none",
+            color: "var(--ink)",
+          }}
+        >
+          <span className="label" style={{ color: "var(--ink)" }}>
+            ◇ install the browser extension · receipts on every X profile you visit
+          </span>
+          <span className="label" style={{ color: "var(--faint)" }}>
+            get it ↗
+          </span>
+        </Link>
       </section>
 
       <footer
