@@ -179,6 +179,18 @@ export default function TerminalPage() {
 
   return (
     <main className="mx-auto px-6" style={{ maxWidth: 1240, padding: "clamp(40px, 8vw, 96px) 24px 100px" }}>
+      {/* ---- TOP: X/Twitter-style creator search ---- */}
+      <div style={{ maxWidth: 680, margin: "0 auto clamp(28px, 5vw, 44px)" }}>
+        <div className="label" style={{ textAlign: "center", marginBottom: 10, color: "var(--muted)" }}>
+          // search the terminal
+        </div>
+        <CreatorSearch
+          creators={(creators ?? []).map((c) => ({ handle: c.handle, display_name: c.display_name }))}
+          onSelect={(h) => setQuery(`@${h}`)}
+          placeholder="Search creators — @handle or name"
+        />
+      </div>
+
       <div className="term-grid">
         {/* ---- LEFT RAIL ---- */}
         <aside className="term-left">
@@ -188,15 +200,6 @@ export default function TerminalPage() {
             <div className="label" style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", marginBottom: 20 }}>
               <span className="flick" style={{ color: "var(--signal)", fontSize: 14, lineHeight: 1 }}>●</span>
               live · polls every 10s
-            </div>
-
-            <div className="label" style={{ marginBottom: 8 }}>jump to creator</div>
-            <div style={{ marginBottom: 14 }}>
-              <CreatorSearch
-                creators={(creators ?? []).map((c) => ({ handle: c.handle, display_name: c.display_name }))}
-                onSelect={(h) => setQuery(`@${h}`)}
-                placeholder="search indexed creators…"
-              />
             </div>
 
             <div className="label" style={{ marginBottom: 8 }}>search feed</div>
@@ -248,21 +251,56 @@ export default function TerminalPage() {
 
         {/* ---- CENTER FEED ---- */}
         <div className="term-center">
-          <div className="term-feed-head">
-            <span className="tnum">{shown.length} {filter === "all" ? "calls" : filter === "signals" ? "signals" : "high-conviction calls"}</span>
+          <div className="term-feed-head" style={{ flexWrap: "wrap", rowGap: 12 }}>
             <button
               onClick={() => setYapMode((v) => !v)}
               title="0-yap: strip the noise, show only 0G-distilled trade logic"
-              className="label"
+              aria-pressed={yapMode}
               style={{
-                display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
-                border: "1px solid var(--line-strong)", borderRadius: "var(--radius)", padding: "4px 10px",
-                background: yapMode ? "var(--ink)" : "transparent", color: yapMode ? "var(--bg)" : "var(--muted)",
+                display: "inline-flex", alignItems: "center", gap: 10, cursor: "pointer", alignSelf: "center",
+                border: `1.5px solid ${yapMode ? "var(--ink)" : "var(--line-strong)"}`,
+                borderRadius: 999,
+                padding: "5px 16px 5px 5px",
+                background: yapMode ? "var(--ink)" : "var(--surface)",
+                color: yapMode ? "var(--bg)" : "var(--ink)",
+                boxShadow: yapMode ? "0 0 0 3px color-mix(in oklch, var(--signal) 28%, transparent)" : "none",
+                transition: "background 0.18s, border-color 0.18s, box-shadow 0.18s",
               }}
             >
-              <span style={{ color: yapMode ? "var(--signal)" : "var(--faint)" }}>◇</span> 0-yap mode {yapMode ? "on" : "off"}
+              <span
+                style={{
+                  display: "grid", placeItems: "center", flexShrink: 0,
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: yapMode ? "var(--bg)" : "var(--dark)",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logos/0g-only0.png"
+                  alt="0G"
+                  width={17}
+                  height={17}
+                  style={{ opacity: yapMode ? 1 : 0.9 }}
+                />
+              </span>
+              <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.2 }}>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 13, letterSpacing: "0.02em" }}>
+                  0-YAP
+                  {yapMode && <span className="flick" style={{ color: "var(--signal)", fontSize: 10 }}>●</span>}
+                </span>
+                <span
+                  className="label"
+                  style={{
+                    fontSize: 9,
+                    color: yapMode ? "color-mix(in oklch, var(--bg) 65%, transparent)" : "var(--muted)",
+                  }}
+                >
+                  {yapMode ? "noise off · powered by 0G" : "powered by 0G — strip the noise"}
+                </span>
+              </span>
             </button>
-            {!canTrade && <span className="label" style={{ color: "var(--muted)" }}>log in to fade or follow</span>}
+            <span className="tnum" style={{ alignSelf: "center" }}>{shown.length} {filter === "all" ? "calls" : filter === "signals" ? "signals" : "high-conviction calls"}</span>
+            {!canTrade && <span className="label" style={{ color: "var(--muted)", alignSelf: "center" }}>log in to fade or follow</span>}
           </div>
 
           {loading && <div className="label flick" style={{ padding: "48px 0" }}>reading the feed…</div>}
