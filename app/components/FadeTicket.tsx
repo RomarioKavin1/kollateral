@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useSendTransaction, useSignTypedData } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import type { DossierCall } from "@/lib/dossier";
+import { netCfg } from "@/lib/networks";
 import { PoweredBy } from "@/components/PoweredBy";
 
 // EIP-712 typed-data shape Uniswap returns as `permitData` (Permit2 PermitSingle).
@@ -390,7 +391,16 @@ export function FadeTicket({ call }: { call: DossierCall }) {
 
       {hash && (
         <div className="text-xs mt-2 font-mono break-all" style={{ color: "var(--gain)" }}>
-          sent: {hash}
+          sent:{" "}
+          <a
+            href={`${netCfg("testnet").explorer}/tx/${hash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="view transaction on the block explorer"
+            style={{ color: "var(--gain)", borderBottom: "1px solid var(--line-strong)", textDecoration: "none" }}
+          >
+            {hash} ↗
+          </a>
         </div>
       )}
 

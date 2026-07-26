@@ -49,7 +49,7 @@ export default function TerminalPage() {
   const [yapMode, setYapMode] = useState(false);
   const [query, setQuery] = useState("");
   const [creators, setCreators] = useState<InfluencerSummary[] | null>(null);
-  const [trade, setTrade] = useState<Record<number, { pending?: boolean; ok?: boolean; msg: string }>>({});
+  const [trade, setTrade] = useState<Record<number, { pending?: boolean; ok?: boolean; msg: string; txHash?: string; network?: string }>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -168,7 +168,7 @@ export default function TerminalPage() {
         }
         await doTrade(callId, mode, true);
       } else if (d.status === "executed" || d.status === "sent" || d.txHash) {
-        setTrade((s) => ({ ...s, [callId]: { ok: true, msg: `${mode === "fade" ? "faded" : "copied"} ✓${d.txHash ? ` · tx ${d.txHash.slice(0, 8)}…` : ""}` } }));
+        setTrade((s) => ({ ...s, [callId]: { ok: true, msg: `${mode === "fade" ? "faded" : "copied"} ✓`, txHash: d.txHash, network } }));
       } else {
         setTrade((s) => ({ ...s, [callId]: { msg: d.reason || d.status || "could not place trade" } }));
       }

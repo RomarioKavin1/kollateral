@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { isRealTweetUrl, resolveTweetUrl } from "@/lib/xlink";
 import { zgAddressUrl } from "@/lib/zgexplorer";
+import { netCfg, isNetwork } from "@/lib/networks";
 import { PoweredBy } from "@/components/PoweredBy";
 import type { FeedCall } from "@/app/api/feed/route";
 
@@ -59,7 +60,7 @@ export function CallTweet({
   connected: boolean;
   fadeOpen?: boolean;
   yapMode?: boolean;
-  tradeStatus?: { pending?: boolean; ok?: boolean; msg: string };
+  tradeStatus?: { pending?: boolean; ok?: boolean; msg: string; txHash?: string; network?: string };
   onFade: () => void;
   onFollow: () => void;
   children?: ReactNode;
@@ -388,6 +389,19 @@ export function CallTweet({
             >
               {tradeStatus.pending && <span className="flick">●</span>}
               {tradeStatus.msg}
+              {/* completed trade: link the on-chain tx straight to the explorer */}
+              {tradeStatus.txHash && (
+                <a
+                  href={`${netCfg(isNetwork(tradeStatus.network) ? tradeStatus.network : "testnet").explorer}/tx/${tradeStatus.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="view transaction on the block explorer"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ color: "var(--ink)", textDecoration: "none", borderBottom: "1px solid var(--line-strong)" }}
+                >
+                  tx {tradeStatus.txHash.slice(0, 8)}… ↗
+                </a>
+              )}
               {/* routing through Uniswap — surface it while the swap is in flight */}
               {tradeStatus.pending && <PoweredBy sponsor="uniswap" label="via" size={0.85} />}
             </span>
