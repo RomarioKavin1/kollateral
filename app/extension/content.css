@@ -1,0 +1,296 @@
+/* KOLlateral — injected widget styles
+   All rules are scoped under kol- prefixed classnames to avoid clashing
+   with X's own styles. We reset inherited properties defensively since
+   X's DOM applies a lot of ambient text/color/line-height styling. */
+
+.kol-btn-wrap,
+.kol-card {
+  all: initial;
+  box-sizing: border-box;
+  font-family: "SF Mono", "Menlo", "Consolas", "Roboto Mono", ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+.kol-btn-wrap * ,
+.kol-card * {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+/* ---------------------------------------------------------------- */
+/* Button                                                            */
+/* ---------------------------------------------------------------- */
+
+.kol-btn-wrap {
+  display: inline-flex;
+  margin: 4px 4px;
+  vertical-align: middle;
+}
+
+.kol-btn {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  border: 1px solid #1a1a1a;
+  background: #f7f7f2;
+  color: #111111;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 120ms ease-out, transform 120ms ease-out;
+}
+
+.kol-btn:hover {
+  background: #c3f53c;
+  transform: translateY(-1px);
+}
+
+.kol-btn:active {
+  transform: translateY(0);
+}
+
+.kol-btn .kol-mark {
+  color: #7a9a1c;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.kol-btn:hover .kol-mark {
+  color: #111111;
+}
+
+/* ---------------------------------------------------------------- */
+/* Card                                                               */
+/* ---------------------------------------------------------------- */
+
+.kol-card {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 8px 0 12px 0;
+  background: #fbfbf8;
+  border: 1px solid #d9d9d0;
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 13px;
+  color: #111111;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.kol-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e6e6de;
+  background: #f2f2ea;
+}
+
+.kol-card-head .kol-mark {
+  color: #7a9a1c;
+  font-size: 13px;
+}
+
+.kol-card-head .kol-brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #444;
+  flex: 1;
+}
+
+.kol-dismiss {
+  all: unset;
+  cursor: pointer;
+  color: #999;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.kol-dismiss:hover {
+  color: #111;
+  background: #e6e6de;
+}
+
+.kol-body {
+  padding: 12px;
+}
+
+.kol-msg {
+  margin: 0 0 8px 0;
+  color: #555;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.kol-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kol-linkbtn {
+  all: unset;
+  cursor: pointer;
+  color: #7a9a1c;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.kol-linkbtn:hover {
+  text-decoration: underline;
+}
+
+/* headline P&L */
+
+.kol-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kol-headline-num {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #333;
+  font-variant-numeric: tabular-nums;
+}
+
+.kol-headline-label {
+  font-size: 11px;
+  color: #888;
+}
+
+.kol-pos {
+  color: #4f7f0e !important;
+}
+
+.kol-neg {
+  color: #c0392b !important;
+}
+
+.kol-warn {
+  color: #b5820a !important;
+}
+
+/* stats row */
+
+.kol-stats-row {
+  display: flex;
+  gap: 14px;
+  padding: 8px 0;
+  border-top: 1px dashed #e6e6de;
+  border-bottom: 1px dashed #e6e6de;
+  margin-bottom: 10px;
+}
+
+.kol-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kol-stat-num {
+  font-size: 15px;
+  font-weight: 700;
+  color: #222;
+  font-variant-numeric: tabular-nums;
+}
+
+.kol-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #999;
+}
+
+/* latest call */
+
+.kol-latest {
+  background: #f2f2ea;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.kol-latest-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.kol-latest-snippet {
+  font-size: 12px;
+  color: #333;
+  line-height: 1.4;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+/* footer */
+
+.kol-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kol-verified {
+  font-size: 10px;
+  color: #7a9a1c;
+  font-weight: 600;
+}
+
+/* loading skeleton */
+
+.kol-loading-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kol-skel {
+  background: linear-gradient(90deg, #eee 25%, #f5f5f0 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: kol-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+.kol-skel-lg {
+  height: 22px;
+  width: 40%;
+}
+
+.kol-skel-sm {
+  height: 12px;
+  width: 80%;
+}
+
+@keyframes kol-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+/* error state */
+
+.kol-card-error .kol-msg {
+  color: #c0392b;
+}
