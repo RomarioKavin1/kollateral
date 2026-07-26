@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { DitherArt } from "@/components/DitherArt";
 import { PoweredBy } from "@/components/PoweredBy";
+import { DeployedOverTimeChart, CreatorDeployedChart, CopyFadeDonut, TradeStatusChart, type DeployPoint } from "@/components/PortfolioCharts";
 import { netCfg, isNetwork } from "@/lib/networks";
 
 interface PortfolioTrade {
@@ -74,6 +75,23 @@ function txUrl(hash: string, network: string | null) {
   const cfg = netCfg(isNetwork(network) ? network : "testnet");
   return `${cfg.explorer}/tx/${hash}`;
 }
+function toMs(value: string | number | null): number {
+  if (value == null) return 0;
+  const d = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+}
+function fmtShortDate(value: string | number | null) {
+  if (value == null) return "—";
+  const d = typeof value === "number" ? new Date(value * 1000) : new Date(value);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+// The USDC that actually moved on an executed trade — mirrors the API's usdcLeg
+// so the chart's cumulative curve matches the "USDC deployed" stat exactly.
+function usdcLeg(t: PortfolioTrade): number {
+  if (t.in_symbol === "USDC" && t.in_amount != null) return t.in_amount;
+  if (t.out_symbol === "USDC" && t.out_amount != null) return t.out_amount;
+  return 0;
+}
 
 const th: React.CSSProperties = { textAlign: "left", padding: "10px 14px", borderBottom: "1px solid var(--line-strong)", whiteSpace: "nowrap" };
 const td: React.CSSProperties = { padding: "12px 14px", borderBottom: "1px solid var(--line)", whiteSpace: "nowrap" };
@@ -131,6 +149,12 @@ export default function PortfolioPage() {
   const pnlPositive = (s?.totalPnlUsd ?? 0) >= 0;
   const maxDeployed = Math.max(0.0001, ...(data?.byCreator.map((c) => c.deployedUsdc) ?? [1]));
   const copyPct = s && s.copies + s.fades > 0 ? Math.round((s.copies / (s.copies + s.fades)) * 100) : 0;
+
+  const deployPoints: DeployPoint[] = (data?.trades ?? [])
+    .filter((t) => t.status === "executed" || t.status === "sent" || !!t.tx_hash)
+    .slice()
+    .sort((a, b) => toMs(a.created_at) - toMs(b.created_at))
+    .map((t) => ({ label: fmtShortDate(t.created_at), amount: usdcLeg(t) }));
 
   return (
     <main className="mx-auto max-w-6xl px-6" style={{ padding: "clamp(48px, 10vw, 110px) 24px 100px" }}>
@@ -200,10 +224,35 @@ export default function PortfolioPage() {
                 </StatCell>
               </div>
 
+              {/* ---- capital deployed over time ---- */}
+              <section style={{ marginTop: 52 }}>
+                <div className="label" style={{ marginBottom: 16 }}>// capital deployed over time</div>
+                <div className="panel rise" style={{ padding: "20px 20px 12px" }}>
+                  <DeployedOverTimeChart points={deployPoints} />
+                </div>
+              </section>
+
+              {/* ---- signal mix + trade status ---- */}
+              <section style={{ marginTop: 40 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+                  <div className="panel rise" style={{ padding: 20 }}>
+                    <div className="label" style={{ marginBottom: 16 }}>// copy vs fade</div>
+                    <CopyFadeDonut copies={s.copies} fades={s.fades} />
+                  </div>
+                  <div className="panel rise" style={{ padding: 20 }}>
+                    <div className="label" style={{ marginBottom: 16 }}>// trade status</div>
+                    <TradeStatusChart executed={s.executed} pending={s.pending} failed={s.failed} />
+                  </div>
+                </div>
+              </section>
+
               {/* ---- by creator ---- */}
               {data.byCreator.length > 0 && (
                 <section style={{ marginTop: 52 }}>
                   <div className="label" style={{ marginBottom: 16 }}>// performance by creator</div>
+                  <div className="panel rise" style={{ padding: "18px 20px 8px", marginBottom: 20 }}>
+                    <CreatorDeployedChart data={data.byCreator} />
+                  </div>
                   <div style={{ display: "grid", gap: 1, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", background: "var(--line)", border: "1px solid var(--line)" }}>
                     {data.byCreator.map((c) => {
                       const cp = c.pnlUsd >= 0;
