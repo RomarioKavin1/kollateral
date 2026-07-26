@@ -2,15 +2,17 @@
 
 ## Short description (max 100 characters)
 
-Backtest crypto influencers against on-chain reality, then copy the honest and fade the rest.
+Accountability for crypto influencers: score their real record, copy the honest, fade the rest.
 
 ## Description
 
-Crypto influencers post hundreds of "calls" a week and quietly delete the ones that lose. KOLlateral keeps the receipts.
+Crypto influencers operate with almost no accountability. They post hundreds of "calls" a week, delete the ones that lose, and there is no shared record of whether following them ever made money. KOLlateral is the accountability layer that makes their track record permanent, priced, and impossible to quietly walk back.
 
-It scrapes an influencer's public posts, uses AI to turn each explicit call into a structured signal (asset, direction, target, confidence), and prices every one against real DEX history, so you can see what following them would actually have returned versus just holding ETH. Deleted calls get flagged in red instead of disappearing, and each call is cross-checked against the caller's own on-chain wallet to catch the classic "said accumulate, sold four hours later." Every score is produced by AI inference running inside a verifiable enclave, so the verdict between their tweet and your screen is provably untampered.
+It scrapes an influencer's public posts and turns each explicit call into a structured signal (asset, direction, target, confidence), then prices every one against real DEX history, so a claim becomes a number: what following them would have returned versus just holding ETH.
 
-Then it closes the loop. From the same feed you copy the callers with a real track record or fade the ones without, in one click, executed on-chain from a self-custody wallet. There is a leaderboard of who is actually worth following, a per-influencer dossier with the equity curve of every call, and a "0-yap" mode that strips a rambling post down to just the trade logic.
+Three things keep that accountability honest. Deleted calls are archived and flagged in red, so a loss cannot vanish once it goes against them. Each call is checked against the caller's own on-chain wallet, so "said accumulate, sold four hours later" becomes a citation with a transaction hash instead of an accusation. And every score is produced by AI inference running inside a verifiable enclave, so the verdict between their tweet and your screen is provably untampered, including by us. Nobody has to take our word for the record, and nobody can edit it after the fact.
+
+Then accountability turns into action. From the same feed you copy the callers who have earned it or fade the ones who have not, in one click, executed on-chain from a self-custody wallet. A leaderboard ranks who is actually worth trusting, each influencer gets a dossier with the equity curve of every call they have made, and a "0-yap" mode strips a rambling post down to just the trade logic.
 
 ## How it's made
 
