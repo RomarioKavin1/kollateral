@@ -15,6 +15,36 @@ export function getDb() {
     db.exec(
       "CREATE TABLE IF NOT EXISTS wallet_attributions (influencer_id INTEGER PRIMARY KEY, note TEXT)"
     );
+    // 0-yap mode cache: the 0G-distilled pure signal per call, so the
+    // distillation runs once and is reused (idempotent side table).
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS yap_signals (call_id INTEGER PRIMARY KEY REFERENCES calls(id), bias TEXT, thesis TEXT, levels_json TEXT, tee_verified INTEGER, created_at INTEGER)"
+    );
+    // Extra copy_trades columns for an honest portfolio: which chain it ran on
+    // (for the explorer link), the REAL amounts swapped (input token in/out,
+    // not the nominal allocation cap), and the failure reason. Added
+    // idempotently — SQLite throws if a column already exists (harmless).
+    for (const col of [
+      "network TEXT DEFAULT 'testnet'",
+      "in_amount REAL",
+      "in_symbol TEXT",
+      "out_amount REAL",
+      "out_symbol TEXT",
+      "reason TEXT",
+    ]) {
+      try {
+        db.exec(`ALTER TABLE copy_trades ADD COLUMN ${col}`);
+      } catch {
+        /* column already present */
+      }
+    }
+    // Global "quick trade amount" (USDC) per user — the default size each
+    // one-click copy/fade deploys, overridable per creator via allocations.
+    try {
+      db.exec("ALTER TABLE users ADD COLUMN quick_trade_usd REAL DEFAULT 1");
+    } catch {
+      /* column already present */
+    }
   }
   return db;
 }

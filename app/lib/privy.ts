@@ -26,6 +26,30 @@ export interface AppUser {
   walletAddress: string | null;
 }
 
+export interface EmbeddedWallet {
+  walletId: string | null; // Privy wallet id, needed by walletApi to sign
+  address: string | null;
+  delegated: boolean; // true when our session signer is delegated to this wallet
+}
+
+// Resolve the user's Privy embedded wallet: its id (for server-side signing),
+// address, and whether our backend signer is delegated to it. Best-effort.
+export async function resolveEmbeddedWallet(privyId: string): Promise<EmbeddedWallet> {
+  try {
+    const u = await privyClient().getUser(privyId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Privy account shape varies by SDK version
+    const linked = ((u as any).linkedAccounts ?? []) as any[];
+    const w = linked.find((a) => a.type === "wallet" && a.walletClientType === "privy");
+    return {
+      walletId: w?.id ?? w?.walletId ?? null,
+      address: w?.address ?? null,
+      delegated: w?.delegated === true,
+    };
+  } catch {
+    return { walletId: null, address: null, delegated: false };
+  }
+}
+
 // Verify the Privy access token from an Authorization: Bearer header, upsert the
 // user, and return them. Returns null when unauthenticated. Every allocation /
 // portfolio / execution route gates on this.

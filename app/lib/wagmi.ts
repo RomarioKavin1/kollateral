@@ -1,15 +1,16 @@
 import { createConfig, http } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
+import { base, baseSepolia } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-// Base Sepolia only: this is the FADE/FOLLOW demo chain (Task 10). Same
-// Uniswap Trading API endpoint serves testnet — the prize accepts testnet
-// tx IDs, so we never touch mainnet funds here.
+// FADE/FOLLOW execution chains: Base Sepolia ("testnet") and Base mainnet
+// ("mainnet"). The header toggle picks the active one; balances and the manual
+// swap ticket read the selected chain. Testnet is the default (no real funds).
 export const wagmiConfig = createConfig({
-  chains: [baseSepolia],
+  chains: [baseSepolia, base],
   connectors: [injected()],
   transports: {
     [baseSepolia.id]: http(),
+    [base.id]: http(),
   },
 });
 

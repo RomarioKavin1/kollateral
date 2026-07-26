@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAccount, useConnect, useSendTransaction, useSignTypedData } from "wagmi";
 import { baseSepolia } from "wagmi/chains";
 import type { DossierCall } from "@/lib/dossier";
+import { PoweredBy } from "@/components/PoweredBy";
 
 // EIP-712 typed-data shape Uniswap returns as `permitData` (Permit2 PermitSingle).
 interface PermitData {
@@ -392,6 +393,10 @@ export function FadeTicket({ call }: { call: DossierCall }) {
           sent: {hash}
         </div>
       )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--line)" }}>
+        <PoweredBy sponsor="uniswap" />
+      </div>
     </div>
   );
 }
