@@ -95,6 +95,14 @@ h1, h2, h3, h4 {
   0%   { background-position: 0 0, 0 0; }
   100% { background-position: 5.2px 5.2px, -5px 5px; }
 }
+/* hero copy crossfade when a sponsor is hovered — re-keyed so it replays on
+   every switch, so the change is legible rather than an instant jump */
+@keyframes heroSwap {
+  from { opacity: 0; transform: translateY(9px); filter: blur(3px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
+}
+.hero-swap { animation: heroSwap 0.42s var(--ease-out-quart) both; display: inline-block; }
+@media (prefers-reduced-motion: reduce) { .hero-swap { animation: none; } }
 .sponsor {
   display: inline-block;
   background-color: transparent;

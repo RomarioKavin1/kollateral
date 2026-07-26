@@ -31,22 +31,35 @@ const EVIDENCE = [
 
 type Sponsor = "0g" | "graph" | "uniswap";
 
-// Hovering a sponsor logo replaces the hero line with why that layer is
-// load-bearing for the product (not decoration). Kept concrete, no jargon.
-const DEFAULT_COPY =
-  "Forensic accountability for crypto influencers. Backtest their calls, catch their wallets in the act, and fade the noise, automatically.";
-const SPONSOR_COPY: Record<Sponsor, { eyebrow: string; body: string }> = {
+// Hovering a sponsor logo takes over the hero (heading + line + eyebrow) with
+// why that layer is load-bearing for the product, not decoration. Concrete,
+// no jargon. The DEFAULT is what shows when nothing is hovered.
+interface HeroCopy {
+  heading: string;
+  eyebrow: string;
+  body: string;
+}
+const DEFAULT: HeroCopy = {
+  heading: "THE MARKET REMEMBERS.",
+  eyebrow: "// built on",
+  body:
+    "Forensic accountability for crypto influencers. Backtest their calls, catch their wallets in the act, and fade the noise, automatically.",
+};
+const SPONSOR_COPY: Record<Sponsor, HeroCopy> = {
   "0g": {
+    heading: "NO HANDS IN THE MIDDLE.",
     eyebrow: "// why verifiable inference",
     body:
       "Every call is read by AI inference running inside a verifiable secure enclave and attested on-chain. So the verdict between their tweet and your screen is provably untampered: no one, not even us, can quietly edit a signal in the middle.",
   },
   graph: {
+    heading: "RECEIPTS, NOT RUMORS.",
     eyebrow: "// why indexed on-chain data",
     body:
       "Every call gets priced and every wallet gets cross-examined against fully-indexed on-chain history. It is what turns “said accumulate, sold four hours later” from a rumor into a receipt with a transaction hash.",
   },
   uniswap: {
+    heading: "VERDICTS YOU CAN TRADE.",
     eyebrow: "// why deep liquidity",
     body:
       "A verdict you cannot act on is just an opinion. Deep, permissionless liquidity is what turns “fade this caller” into a real on-chain position: copy the honest, fade the rest, in one click.",
@@ -55,8 +68,8 @@ const SPONSOR_COPY: Record<Sponsor, { eyebrow: string; body: string }> = {
 
 export default function HomePage() {
   const [hovered, setHovered] = useState<Sponsor | null>(null);
-  const copy = hovered ? SPONSOR_COPY[hovered].body : DEFAULT_COPY;
-  const eyebrow = hovered ? SPONSOR_COPY[hovered].eyebrow : "// built on";
+  const active = hovered ? SPONSOR_COPY[hovered] : DEFAULT;
+  const swapKey = hovered ?? "default"; // re-key so the swap animation replays
 
   return (
     <main>
@@ -104,11 +117,11 @@ export default function HomePage() {
               fontSize: "clamp(44px, 9vw, 116px)",
               margin: "18px 0 0",
               lineHeight: 0.94,
+              minHeight: "1.88em", // reserve 2 lines so a shorter heading doesn't shift the page
+              maxWidth: "16ch",
             }}
           >
-            THE MARKET
-            <br />
-            REMEMBERS.
+            <span key={swapKey} className="hero-swap">{active.heading}</span>
           </h1>
 
           <p
@@ -124,7 +137,7 @@ export default function HomePage() {
               transition: "color 0.2s var(--ease-out-quart)",
             }}
           >
-            {copy}
+            <span key={swapKey} className="hero-swap">{active.body}</span>
           </p>
 
           <div
@@ -135,7 +148,7 @@ export default function HomePage() {
               className="label"
               style={{ marginBottom: 14, color: hovered ? "var(--ink)" : "var(--faint)", transition: "color 0.2s" }}
             >
-              {eyebrow}
+              <span key={swapKey} className="hero-swap">{active.eyebrow}</span>
             </div>
             <div
               style={{
