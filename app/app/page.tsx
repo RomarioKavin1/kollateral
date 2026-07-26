@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { InteractiveDither } from "@/components/InteractiveDither";
 import { DitherArt } from "@/components/DitherArt";
 import { PoweredBy } from "@/components/PoweredBy";
@@ -30,15 +29,34 @@ const EVIDENCE = [
   },
 ];
 
-export default function HomePage() {
-  const router = useRouter();
-  const [handleInput, setHandleInput] = useState("");
+type Sponsor = "0g" | "graph" | "uniswap";
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const handle = handleInput.trim().replace(/^@/, "");
-    if (handle) router.push(`/k/${handle}`);
-  }
+// Hovering a sponsor logo replaces the hero line with why that layer is
+// load-bearing for the product (not decoration). Kept concrete, no jargon.
+const DEFAULT_COPY =
+  "Forensic accountability for crypto influencers. Backtest their calls, catch their wallets in the act, and fade the noise, automatically.";
+const SPONSOR_COPY: Record<Sponsor, { eyebrow: string; body: string }> = {
+  "0g": {
+    eyebrow: "// why verifiable inference",
+    body:
+      "Every call is read by AI inference running inside a verifiable secure enclave and attested on-chain. So the verdict between their tweet and your screen is provably untampered: no one, not even us, can quietly edit a signal in the middle.",
+  },
+  graph: {
+    eyebrow: "// why indexed on-chain data",
+    body:
+      "Every call gets priced and every wallet gets cross-examined against fully-indexed on-chain history. It is what turns “said accumulate, sold four hours later” from a rumor into a receipt with a transaction hash.",
+  },
+  uniswap: {
+    eyebrow: "// why deep liquidity",
+    body:
+      "A verdict you cannot act on is just an opinion. Deep, permissionless liquidity is what turns “fade this caller” into a real on-chain position: copy the honest, fade the rest, in one click.",
+  },
+};
+
+export default function HomePage() {
+  const [hovered, setHovered] = useState<Sponsor | null>(null);
+  const copy = hovered ? SPONSOR_COPY[hovered].body : DEFAULT_COPY;
+  const eyebrow = hovered ? SPONSOR_COPY[hovered].eyebrow : "// built on";
 
   return (
     <main>
@@ -97,99 +115,45 @@ export default function HomePage() {
             className="rise"
             style={{
               animationDelay: "180ms",
-              maxWidth: "52ch",
+              maxWidth: "54ch",
               marginTop: 22,
-              color: "var(--muted)",
+              minHeight: "5.4em", // reserve space so hover copy never shifts the logos
+              color: hovered ? "var(--ink)" : "var(--muted)",
               fontSize: 15,
+              lineHeight: 1.6,
+              transition: "color 0.2s var(--ease-out-quart)",
             }}
           >
-            Forensic accountability for crypto influencers. Backtest their
-            calls, catch their wallets in the act, and fade the noise,
-            automatically.
+            {copy}
           </p>
-
-          <form
-            onSubmit={handleSubmit}
-            className="rise"
-            style={{
-              animationDelay: "280ms",
-              display: "flex",
-              gap: 8,
-              marginTop: 34,
-              maxWidth: 520,
-            }}
-          >
-            <div
-              className="panel scan"
-              style={{
-                display: "flex",
-                flex: 1,
-                alignItems: "center",
-                paddingLeft: 12,
-                background:
-                  "color-mix(in oklch, var(--surface) 88%, transparent)",
-              }}
-            >
-              <span className="label" style={{ marginRight: 8 }}>
-                @
-              </span>
-              <input
-                value={handleInput}
-                onChange={(e) => setHandleInput(e.target.value)}
-                placeholder="run a handle through the ledger"
-                aria-label="Influencer handle"
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: 0,
-                  outline: 0,
-                  color: "var(--ink)",
-                  padding: "12px 8px",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 14,
-                }}
-              />
-            </div>
-            <button
-              type="submit"
-              style={{
-                border: "1px solid var(--ink)",
-                borderRadius: "var(--radius)",
-                padding: "0 20px",
-                background: "var(--ink)",
-                color: "var(--surface)",
-                fontFamily: "var(--font-mono)",
-                fontSize: 12,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                cursor: "pointer",
-              }}
-            >
-              Depose
-            </button>
-          </form>
 
           <div
             className="rise"
-            style={{ animationDelay: "420ms", marginTop: 34 }}
+            style={{ animationDelay: "300ms", marginTop: 30 }}
           >
-            <div className="label" style={{ marginBottom: 14 }}>
-              // built on
+            <div
+              className="label"
+              style={{ marginBottom: 14, color: hovered ? "var(--ink)" : "var(--faint)", transition: "color 0.2s" }}
+            >
+              {eyebrow}
             </div>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 34,
+                gap: 40,
                 flexWrap: "wrap",
               }}
             >
               <span
                 className="sponsor"
                 title="0G"
+                onMouseEnter={() => setHovered("0g")}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  width: 84,
-                  height: 40,
+                  width: 92,
+                  height: 44,
+                  cursor: "pointer",
                   WebkitMaskImage: "url(/logos/0g.png)",
                   maskImage: "url(/logos/0g.png)",
                 }}
@@ -197,9 +161,12 @@ export default function HomePage() {
               <span
                 className="sponsor"
                 title="The Graph"
+                onMouseEnter={() => setHovered("graph")}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 54,
+                  height: 54,
+                  cursor: "pointer",
                   WebkitMaskImage: "url(/logos/the-graph.svg)",
                   maskImage: "url(/logos/the-graph.svg)",
                 }}
@@ -207,9 +174,12 @@ export default function HomePage() {
               <span
                 className="sponsor"
                 title="Uniswap"
+                onMouseEnter={() => setHovered("uniswap")}
+                onMouseLeave={() => setHovered(null)}
                 style={{
-                  width: 38,
-                  height: 40,
+                  width: 52,
+                  height: 54,
+                  cursor: "pointer",
                   WebkitMaskImage: "url(/logos/uniswap.png)",
                   maskImage: "url(/logos/uniswap.png)",
                 }}
