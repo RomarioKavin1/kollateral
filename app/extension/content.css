@@ -1,296 +1,276 @@
-/* KOLlateral — injected widget styles
-   All rules are scoped under kol- prefixed classnames to avoid clashing
-   with X's own styles. We reset inherited properties defensively since
-   X's DOM applies a lot of ambient text/color/line-height styling. */
+/* KOLlateral X/Twitter extension — theme-aware (Default / Dim / Lights out).
+   Theme is chosen in content.js by reading X's page background luminance and
+   setting data-kol-theme on <html>. Dark is the default until that runs.
+   All rules are scoped under kol- prefixed classnames. */
 
-.kol-btn-wrap,
-.kol-card {
-  all: initial;
-  box-sizing: border-box;
-  font-family: "SF Mono", "Menlo", "Consolas", "Roboto Mono", ui-monospace, monospace;
-  -webkit-font-smoothing: antialiased;
+.kol-card,
+.kol-btn {
+  /* dark defaults */
+  --kol-bg: #16181c;
+  --kol-panel: rgba(255, 255, 255, 0.05);
+  --kol-fg: #e7e9ea;
+  --kol-muted: #71767b;
+  --kol-border: rgba(255, 255, 255, 0.13);
+  --kol-green: #b9f73e;
+  --kol-pos: #7ee081;
+  --kol-neg: #f4212e;
+  --kol-warn: #ffb020;
+}
+:root[data-kol-theme="light"] .kol-card,
+:root[data-kol-theme="light"] .kol-btn {
+  --kol-bg: #ffffff;
+  --kol-panel: rgba(0, 0, 0, 0.035);
+  --kol-fg: #0f1419;
+  --kol-muted: #536471;
+  --kol-border: rgba(0, 0, 0, 0.12);
+  --kol-green: #5aa700;
+  --kol-pos: #17a34a;
+  --kol-neg: #e0245e;
+  --kol-warn: #b26a00;
 }
 
-.kol-btn-wrap * ,
-.kol-card * {
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-/* ---------------------------------------------------------------- */
-/* Button                                                            */
-/* ---------------------------------------------------------------- */
-
+/* ---- button in the profile action row ---- */
 .kol-btn-wrap {
   display: inline-flex;
-  margin: 4px 4px;
-  vertical-align: middle;
+  margin-left: 8px;
+  align-items: center;
 }
-
 .kol-btn {
-  all: unset;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  border-radius: 9999px;
-  border: 1px solid #1a1a1a;
-  background: #f7f7f2;
-  color: #111111;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   line-height: 1;
+  color: var(--kol-fg);
+  background: var(--kol-bg);
+  border: 1px solid var(--kol-border);
+  border-radius: 9999px;
+  padding: 8px 15px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 120ms ease-out, transform 120ms ease-out;
+  transition: border-color 0.15s, background 0.15s;
 }
-
 .kol-btn:hover {
-  background: #c3f53c;
-  transform: translateY(-1px);
+  border-color: var(--kol-green);
+  background: var(--kol-panel);
 }
-
-.kol-btn:active {
-  transform: translateY(0);
-}
-
 .kol-btn .kol-mark {
-  color: #7a9a1c;
-  font-size: 14px;
-  line-height: 1;
+  color: var(--kol-green);
+  font-weight: 800;
 }
 
-.kol-btn:hover .kol-mark {
-  color: #111111;
-}
-
-/* ---------------------------------------------------------------- */
-/* Card                                                               */
-/* ---------------------------------------------------------------- */
-
+/* ---- analytics card ---- */
 .kol-card {
-  display: block;
-  width: 100%;
-  max-width: 420px;
-  margin: 8px 0 12px 0;
-  background: #fbfbf8;
-  border: 1px solid #d9d9d0;
-  border-radius: 12px;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  margin: 12px 0;
+  padding: 0;
+  background: var(--kol-bg);
+  color: var(--kol-fg);
+  border: 1px solid var(--kol-border);
+  border-radius: 16px;
   overflow: hidden;
   font-size: 13px;
-  color: #111111;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  line-height: 1.4;
+  text-align: left;
+  animation: kolIn 0.18s ease-out both;
+}
+.kol-card *,
+.kol-btn * {
+  box-sizing: border-box;
+  margin: 0;
 }
 
 .kol-card-head {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #e6e6de;
-  background: #f2f2ea;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--kol-border);
 }
-
-.kol-card-head .kol-mark {
-  color: #7a9a1c;
+.kol-card .kol-mark {
+  color: var(--kol-green);
+  font-weight: 800;
   font-size: 13px;
 }
-
-.kol-card-head .kol-brand {
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.kol-brand {
   font-size: 11px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #444;
-  flex: 1;
+  font-weight: 700;
+  color: var(--kol-fg);
 }
-
 .kol-dismiss {
-  all: unset;
+  margin-left: auto;
+  background: none;
+  border: 0;
+  color: var(--kol-muted);
   cursor: pointer;
-  color: #999;
   font-size: 15px;
   line-height: 1;
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 3px 5px;
+  border-radius: 6px;
 }
-
 .kol-dismiss:hover {
-  color: #111;
-  background: #e6e6de;
+  color: var(--kol-fg);
+  background: var(--kol-panel);
 }
 
 .kol-body {
-  padding: 12px;
-}
-
-.kol-msg {
-  margin: 0 0 8px 0;
-  color: #555;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.kol-actions {
+  padding: 14px;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.kol-linkbtn {
-  all: unset;
-  cursor: pointer;
-  color: #7a9a1c;
-  font-weight: 700;
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.kol-linkbtn:hover {
-  text-decoration: underline;
-}
-
-/* headline P&L */
 
 .kol-headline {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
 }
-
 .kol-headline-num {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.01em;
-  color: #333;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--kol-fg);
 }
-
 .kol-headline-label {
   font-size: 11px;
-  color: #888;
+  color: var(--kol-muted);
 }
-
-.kol-pos {
-  color: #4f7f0e !important;
-}
-
-.kol-neg {
-  color: #c0392b !important;
-}
-
-.kol-warn {
-  color: #b5820a !important;
-}
-
-/* stats row */
 
 .kol-stats-row {
   display: flex;
-  gap: 14px;
-  padding: 8px 0;
-  border-top: 1px dashed #e6e6de;
-  border-bottom: 1px dashed #e6e6de;
-  margin-bottom: 10px;
+  border: 1px solid var(--kol-border);
+  border-radius: 10px;
+  overflow: hidden;
 }
-
 .kol-stat {
+  flex: 1;
+  padding: 9px 10px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
 }
-
+.kol-stat + .kol-stat {
+  border-left: 1px solid var(--kol-border);
+}
 .kol-stat-num {
   font-size: 15px;
   font-weight: 700;
-  color: #222;
-  font-variant-numeric: tabular-nums;
+  color: var(--kol-fg);
 }
-
 .kol-stat-label {
-  font-size: 10px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #999;
+  color: var(--kol-muted);
+  white-space: nowrap;
 }
-
-/* latest call */
 
 .kol-latest {
-  background: #f2f2ea;
-  border-radius: 8px;
-  padding: 8px 10px;
-  margin-bottom: 10px;
+  background: var(--kol-panel);
+  border-radius: 10px;
+  padding: 10px 12px;
 }
-
 .kol-latest-tag {
   font-size: 10px;
-  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: #666;
-  margin-bottom: 4px;
+  color: var(--kol-muted);
+  margin-bottom: 5px;
 }
-
 .kol-latest-snippet {
   font-size: 12px;
-  color: #333;
-  line-height: 1.4;
+  color: var(--kol-fg);
+  opacity: 0.92;
+  line-height: 1.5;
   font-style: italic;
-  overflow-wrap: anywhere;
 }
-
-/* footer */
 
 .kol-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
-
 .kol-verified {
-  font-size: 10px;
-  color: #7a9a1c;
+  font-size: 11px;
+  color: var(--kol-green);
   font-weight: 600;
 }
+.kol-linkbtn,
+.kol-open {
+  color: var(--kol-fg);
+  text-decoration: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.kol-open:hover,
+.kol-linkbtn:hover {
+  color: var(--kol-green);
+}
 
-/* loading skeleton */
+.kol-pos {
+  color: var(--kol-pos) !important;
+}
+.kol-neg {
+  color: var(--kol-neg) !important;
+}
+.kol-warn {
+  color: var(--kol-warn) !important;
+}
 
+/* states */
 .kol-loading-body {
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
-
 .kol-skel {
-  background: linear-gradient(90deg, #eee 25%, #f5f5f0 37%, #eee 63%);
-  background-size: 400% 100%;
-  animation: kol-shimmer 1.4s ease infinite;
+  background: var(--kol-panel);
   border-radius: 6px;
+  animation: kolPulse 1.2s ease-in-out infinite;
 }
-
 .kol-skel-lg {
-  height: 22px;
-  width: 40%;
+  height: 26px;
+  width: 55%;
 }
-
 .kol-skel-sm {
   height: 12px;
-  width: 80%;
+  width: 82%;
+}
+.kol-msg {
+  font-size: 12.5px;
+  color: var(--kol-muted);
+  padding: 0 0 2px;
+}
+.kol-actions {
+  display: flex;
+}
+.kol-retry {
+  color: var(--kol-green);
 }
 
-@keyframes kol-shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
-  }
+@keyframes kolPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
-
-/* error state */
-
-.kol-card-error .kol-msg {
-  color: #c0392b;
+@keyframes kolIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kol-card { animation: none; }
+  .kol-skel { animation: none; }
 }

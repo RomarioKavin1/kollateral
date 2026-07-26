@@ -153,6 +153,7 @@
   // ---------------------------------------------------------------------
   function mountWidget(handle, actionsRow) {
     if (document.getElementById(widgetRootId(handle))) return; // dup guard
+    applyTheme();
 
     // Button, inserted inline with the header's action buttons.
     const btnWrap = document.createElement("div");
@@ -292,6 +293,22 @@
     return n > 0 ? "kol-pos" : n < 0 ? "kol-neg" : "";
   }
 
+  // Match X's active theme (Default / Dim / Lights out) by reading the page
+  // background luminance, so the card doesn't sit as a bright slab on dark X.
+  function applyTheme() {
+    let theme = "dark";
+    try {
+      const m = getComputedStyle(document.body).backgroundColor.match(/\d+/g);
+      if (m && m.length >= 3) {
+        const lum = 0.2126 * +m[0] + 0.7152 * +m[1] + 0.0722 * +m[2];
+        theme = lum < 128 ? "dark" : "light";
+      }
+    } catch (e) {
+      /* default dark */
+    }
+    document.documentElement.setAttribute("data-kol-theme", theme);
+  }
+
   function renderHeader() {
     return `
       <div class="kol-card-head">
@@ -336,7 +353,8 @@
   function renderFound(data) {
     const headline = fmtPct(data.headlinePct);
     const headlineClass = pctClass(data.headlinePct);
-    const contradictionPct = Math.round((data.contradictionRate ?? 0) * 100);
+    // API already returns contradiction as a 0-100 percentage, do not scale again.
+    const contradictionPct = Math.round(data.contradictionRate ?? 0);
     const contraClass = contradictionPct >= 40 ? "kol-neg" : contradictionPct >= 15 ? "kol-warn" : "";
 
     let latestHtml = "";
