@@ -9,6 +9,7 @@ import { SaidVsDid } from "@/components/SaidVsDid";
 import { EquityCurveChart } from "@/components/DitheredChart";
 import { DitherArt } from "@/components/DitherArt";
 import { AnimatedNumber, TokenPerfChart, ReturnsTimeline, DirectionSplit, Sparkline, SignalMix, MiniBars } from "@/components/DossierCharts";
+import { PoweredBy } from "@/components/PoweredBy";
 import { xProfileUrl } from "@/lib/xlink";
 import type { Dossier, DossierCall } from "@/lib/dossier";
 
@@ -320,7 +321,10 @@ export default function DossierPage() {
         <div style={{ marginBottom: 40 }}>
           {curve.length > 0 && (
             <div className="panel rise" style={{ padding: "18px 18px 8px", marginBottom: 16 }}>
-              <div className="label" style={{ marginBottom: 6 }}>// equity curve · $1,000 per call vs holding ETH</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+                <div className="label" style={{ marginBottom: 0 }}>// equity curve · $1,000 per call vs holding ETH</div>
+                <PoweredBy sponsor="graph" label="pricing via" />
+              </div>
               <EquityCurveChart data={curve} positive={dossier.stats.totalPnl >= 0} />
             </div>
           )}

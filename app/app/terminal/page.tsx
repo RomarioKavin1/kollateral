@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useAccount } from "wagmi";
-import { FadeTicket } from "@/components/FadeTicket";
+import { usePrivy, useSigners, useWallets } from "@privy-io/react-auth";
+import { useNetwork } from "@/components/NetworkProvider";
 import { DitherArt } from "@/components/DitherArt";
 import { CallTweet } from "@/components/CallTweet";
+import { CreatorSearch } from "@/components/CreatorSearch";
 import type { FeedCall } from "@/app/api/feed/route";
 import type { InfluencerSummary } from "@/app/api/influencers/route";
-import type { DossierCall } from "@/lib/dossier";
 
 type Filter = "all" | "signals" | "conviction";
 
@@ -27,47 +27,29 @@ function MiniAvatar({ handle }: { handle: string }) {
   );
 }
 
-// FadeTicket expects a full DossierCall; the feed row doesn't carry
-// entry/return/pnl (those only exist once a call is scored in the
-// dossier), so those fields are filled with null here.
-function toDossierCall(f: FeedCall): DossierCall {
-  return {
-    id: f.call_id,
-    content: f.content,
-    url: f.url,
-    posted_at: f.posted_at,
-    template: f.template,
-    asset_symbol: f.asset_symbol,
-    direction: f.direction,
-    expiry_at: f.expiry_at,
-    confidence: f.confidence,
-    entry: null,
-    latest: f.latest_price,
-    retPct: null,
-    pnlUsd: null,
-    ethPnlUsd: null,
-    status: f.status,
-    deleted_at: f.deleted_at,
-    chat_id: null,
-  };
-}
 
 const POLL_MS = 10_000;
 
 export default function TerminalPage() {
-  const { isConnected } = useAccount();
-  // Guard wallet state until after mount so the first client render matches the
-  // server (isConnected is always false on the server, avoiding a hydration mismatch).
+  // Guard auth-dependent UI until after mount so the first client render matches
+  // the server (authenticated is false on the server, avoiding a hydration mismatch).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const connected = mounted && isConnected;
+  const { ready, authenticated, login, getAccessToken } = usePrivy();
+  const { wallets } = useWallets();
+  const { addSigners } = useSigners();
+  const { network } = useNetwork();
+  const signerId = process.env.NEXT_PUBLIC_PRIVY_AUTH_ID_2;
+  const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
+  const canTrade = mounted && ready && authenticated;
   const [calls, setCalls] = useState<FeedCall[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openCallId, setOpenCallId] = useState<number | null>(null);
   const [filter, setFilter] = useState<Filter>("signals");
+  const [yapMode, setYapMode] = useState(false);
   const [query, setQuery] = useState("");
   const [creators, setCreators] = useState<InfluencerSummary[] | null>(null);
+  const [trade, setTrade] = useState<Record<number, { pending?: boolean; ok?: boolean; msg: string }>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -149,6 +131,52 @@ export default function TerminalPage() {
     return { total: all.length, verified, signals };
   }, [calls]);
 
+  // One-click copy (follow) / fade. Fully automated: if the wallet isn't yet
+  // delegated for auto-trading, we run the one-time delegation consent inline
+  // and then execute — no manual swap form, ever.
+  async function doTrade(callId: number, mode: "copy" | "fade", retried = false) {
+    if (!ready) return;
+    if (!authenticated) {
+      login();
+      return;
+    }
+    setTrade((s) => ({ ...s, [callId]: { pending: true, msg: mode === "fade" ? "fading…" : "copying…" } }));
+    try {
+      const token = await getAccessToken();
+      const r = await fetch(`/api/trade/${callId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ mode, network }),
+      });
+      const d = (await r.json()) as { status?: string; txHash?: string; reason?: string; needsDelegation?: boolean };
+      if (d.status === "no_pool") {
+        // No tradeable pool on the active network — say so immediately, no form.
+        setTrade((s) => ({ ...s, [callId]: { msg: d.reason || "no pool available on this network" } }));
+      } else if (d.needsDelegation) {
+        // Not delegated yet → run the one-time "enable auto-trading" consent,
+        // then retry the trade automatically. No token-address form.
+        if (retried || !embeddedWallet || !signerId) {
+          setTrade((s) => ({ ...s, [callId]: { msg: "enable auto-trading (top bar) to trade" } }));
+          return;
+        }
+        setTrade((s) => ({ ...s, [callId]: { pending: true, msg: "enabling auto-trading…" } }));
+        try {
+          await addSigners({ address: embeddedWallet.address, signers: [{ signerId }] });
+        } catch {
+          setTrade((s) => ({ ...s, [callId]: { msg: "auto-trading not enabled — trade cancelled" } }));
+          return;
+        }
+        await doTrade(callId, mode, true);
+      } else if (d.status === "executed" || d.status === "sent" || d.txHash) {
+        setTrade((s) => ({ ...s, [callId]: { ok: true, msg: `${mode === "fade" ? "faded" : "copied"} ✓${d.txHash ? ` · tx ${d.txHash.slice(0, 8)}…` : ""}` } }));
+      } else {
+        setTrade((s) => ({ ...s, [callId]: { msg: d.reason || d.status || "could not place trade" } }));
+      }
+    } catch {
+      setTrade((s) => ({ ...s, [callId]: { msg: "trade request failed" } }));
+    }
+  }
+
   return (
     <main className="mx-auto px-6" style={{ maxWidth: 1240, padding: "clamp(40px, 8vw, 96px) 24px 100px" }}>
       <div className="term-grid">
@@ -162,7 +190,16 @@ export default function TerminalPage() {
               live · polls every 10s
             </div>
 
-            <div className="label" style={{ marginBottom: 8 }}>search</div>
+            <div className="label" style={{ marginBottom: 8 }}>jump to creator</div>
+            <div style={{ marginBottom: 14 }}>
+              <CreatorSearch
+                creators={(creators ?? []).map((c) => ({ handle: c.handle, display_name: c.display_name }))}
+                onSelect={(h) => setQuery(`@${h}`)}
+                placeholder="search indexed creators…"
+              />
+            </div>
+
+            <div className="label" style={{ marginBottom: 8 }}>search feed</div>
             <div className="term-search" style={{ marginBottom: 20 }}>
               <span aria-hidden style={{ color: "var(--faint)" }}>⌕</span>
               <input
@@ -213,7 +250,19 @@ export default function TerminalPage() {
         <div className="term-center">
           <div className="term-feed-head">
             <span className="tnum">{shown.length} {filter === "all" ? "calls" : filter === "signals" ? "signals" : "high-conviction calls"}</span>
-            {!connected && <span className="label" style={{ color: "var(--muted)" }}>connect a wallet to fade or follow</span>}
+            <button
+              onClick={() => setYapMode((v) => !v)}
+              title="0-yap: strip the noise, show only 0G-distilled trade logic"
+              className="label"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+                border: "1px solid var(--line-strong)", borderRadius: "var(--radius)", padding: "4px 10px",
+                background: yapMode ? "var(--ink)" : "transparent", color: yapMode ? "var(--bg)" : "var(--muted)",
+              }}
+            >
+              <span style={{ color: yapMode ? "var(--signal)" : "var(--faint)" }}>◇</span> 0-yap mode {yapMode ? "on" : "off"}
+            </button>
+            {!canTrade && <span className="label" style={{ color: "var(--muted)" }}>log in to fade or follow</span>}
           </div>
 
           {loading && <div className="label flick" style={{ padding: "48px 0" }}>reading the feed…</div>}
@@ -226,26 +275,18 @@ export default function TerminalPage() {
 
           {!loading && !error && shown.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {shown.map((c, i) => {
-                const isOpen = openCallId === c.call_id;
-                return (
-                  <div key={c.call_id} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
-                    <CallTweet
-                      call={c}
-                      connected={connected}
-                      fadeOpen={isOpen}
-                      onFade={() => setOpenCallId(isOpen ? null : c.call_id)}
-                      onFollow={() => setOpenCallId(isOpen ? null : c.call_id)}
-                    >
-                      {isOpen && (
-                        <div style={{ marginTop: 16, borderTop: "1px solid var(--line)", paddingTop: 16 }}>
-                          <FadeTicket call={toDossierCall(c)} />
-                        </div>
-                      )}
-                    </CallTweet>
-                  </div>
-                );
-              })}
+              {shown.map((c, i) => (
+                <div key={c.call_id} className="rise" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                  <CallTweet
+                    call={c}
+                    connected={canTrade}
+                    yapMode={yapMode}
+                    tradeStatus={trade[c.call_id]}
+                    onFade={() => doTrade(c.call_id, "fade")}
+                    onFollow={() => doTrade(c.call_id, "copy")}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>

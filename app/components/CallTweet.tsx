@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { isRealTweetUrl, resolveTweetUrl } from "@/lib/xlink";
 import { zgAddressUrl } from "@/lib/zgexplorer";
+import { PoweredBy } from "@/components/PoweredBy";
 import type { FeedCall } from "@/app/api/feed/route";
 
 function timeAgo(unixSec: number): string {
@@ -47,14 +48,18 @@ interface Receipt {
 export function CallTweet({
   call,
   connected,
-  fadeOpen,
+  fadeOpen = false,
+  yapMode = false,
+  tradeStatus,
   onFade,
   onFollow,
   children,
 }: {
   call: FeedCall;
   connected: boolean;
-  fadeOpen: boolean;
+  fadeOpen?: boolean;
+  yapMode?: boolean;
+  tradeStatus?: { pending?: boolean; ok?: boolean; msg: string };
   onFade: () => void;
   onFollow: () => void;
   children?: ReactNode;
@@ -66,6 +71,31 @@ export function CallTweet({
   const [reportOpen, setReportOpen] = useState(false);
   const [reportPending, setReportPending] = useState(false);
   const [reportMsg, setReportMsg] = useState<string | null>(null);
+
+  // 0-yap: the 0G-distilled pure signal. Comes inline with the feed (call.yap)
+  // so it's instant; only cards not yet distilled fall back to an on-demand
+  // fetch that distills + caches on the server.
+  type Yap = { bias: "long" | "short" | "neutral"; thesis: string; levels: string[]; teeVerified: boolean | null; error?: string };
+  const [fetchedYap, setFetchedYap] = useState<Yap | null>(null);
+  const [yapLoading, setYapLoading] = useState(false);
+  const activeYap: Yap | null = call.yap ?? fetchedYap;
+  useEffect(() => {
+    if (!yapMode || activeYap || yapLoading) return;
+    let cancelled = false;
+    setYapLoading(true);
+    fetch(`/api/yap/${call.call_id}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d?.thesis) setFetchedYap({ bias: d.bias, thesis: d.thesis, levels: d.levels ?? [], teeVerified: d.teeVerified ?? null });
+        else setFetchedYap({ bias: "neutral", thesis: "", levels: [], teeVerified: null, error: d?.error || "no signal" });
+      })
+      .catch(() => !cancelled && setFetchedYap({ bias: "neutral", thesis: "", levels: [], teeVerified: null, error: "distill failed" }))
+      .finally(() => !cancelled && setYapLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [yapMode, activeYap, yapLoading, call.call_id]);
 
   const name = call.display_name || call.handle;
   const dir = call.direction;
@@ -178,10 +208,46 @@ export function CallTweet({
           </>
         )}
 
-        {/* the tweet */}
-        <p style={{ marginTop: deleted ? 12 : 8, color: "var(--ink)", fontSize: 15, lineHeight: 1.55, whiteSpace: "pre-wrap", overflowWrap: "anywhere", opacity: deleted ? 0.72 : 1 }}>
-          {call.content}
-        </p>
+        {/* the tweet — or, in 0-yap mode, the 0G-distilled pure signal */}
+        {yapMode ? (
+          <div className="yap-block" style={{ marginTop: deleted ? 12 : 10 }}>
+            {!activeYap && yapLoading ? (
+              <div className="label flick" style={{ color: "var(--muted)" }}>distilling signal via 0G…</div>
+            ) : activeYap?.thesis ? (
+              <>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                  <span
+                    className="pixel"
+                    style={{ fontSize: 15, letterSpacing: "0.04em", color: activeYap.bias === "long" ? "var(--gain)" : activeYap.bias === "short" ? "var(--loss)" : "var(--muted)" }}
+                  >
+                    {call.asset_symbol ? `$${call.asset_symbol}` : "SIGNAL"} {activeYap.bias === "long" ? "▲ LONG" : activeYap.bias === "short" ? "▼ SHORT" : "· NEUTRAL"}
+                  </span>
+                </div>
+                <p style={{ marginTop: 8, color: "var(--ink)", fontSize: 16, lineHeight: 1.4, fontFamily: "var(--font-display)", fontWeight: 600 }}>
+                  {activeYap.thesis}
+                </p>
+                {activeYap.levels.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                    {activeYap.levels.map((l, i) => (
+                      <span key={i} className="chip" style={{ fontSize: 11 }}>{l}</span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+                  <span className="label" style={{ color: "var(--faint)" }}>noise removed · distilled by</span>
+                  <PoweredBy sponsor="0g" label={null} size={0.9} />
+                  {activeYap.teeVerified && <span className="label" style={{ color: "var(--gain)" }}>✓ verifiable</span>}
+                </div>
+              </>
+            ) : (
+              <div className="label" style={{ color: "var(--muted)" }}>{activeYap?.error ? `0-yap: ${activeYap.error}` : "no distilled signal"}</div>
+            )}
+          </div>
+        ) : (
+          <p style={{ marginTop: deleted ? 12 : 8, color: "var(--ink)", fontSize: 15, lineHeight: 1.55, whiteSpace: "pre-wrap", overflowWrap: "anywhere", opacity: deleted ? 0.72 : 1 }}>
+            {call.content}
+          </p>
+        )}
 
         {/* AI inference chips */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, alignItems: "center" }}>
@@ -253,7 +319,7 @@ export function CallTweet({
 
         {proofOpen && ai && (
           <div className="proof-panel">
-            <div className="label" style={{ marginBottom: 10 }}>// 0G compute · verifiable inference</div>
+            <div className="label" style={{ marginBottom: 10 }}>// 0G mainnet compute · verifiable, provable inference</div>
             <ProofRow k="model" v={ai.model} />
             <ProofRow k="classified" v={`${ai.aiTemplate ?? call.template}${ai.aiConfidence != null ? ` (${Math.round(ai.aiConfidence * 100)}%)` : ""}`} />
             <ProofRow k="provider" v={trunc(ai.provider, 10)} mono href={ai.provider ? zgAddressUrl(ai.provider) : undefined} />
@@ -288,13 +354,16 @@ export function CallTweet({
                 <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>X-0G-Provider-Trust-Mode: private</span>; the response&apos;s{" "}
                 <span style={{ fontFamily: "var(--font-mono)", color: "var(--muted)" }}>x_0g_trace.tee_verified</span> is 0G&apos;s answer, not ours.
               </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 2 }}>
+                <PoweredBy sponsor="0g" />
+              </div>
             </div>
           </div>
         )}
 
         {/* actions: follow = vote with, fade = vote against */}
-        <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center" }}>
-          <div className={`votes ${fadeOpen ? "votes-open" : ""}`}>
+        <div style={{ display: "flex", gap: 12, marginTop: 14, alignItems: "center", flexWrap: "wrap" }}>
+          <div className={`votes ${fadeOpen ? "votes-open" : ""}`} style={{ flexShrink: 0 }}>
             <button
               className="vote up"
               disabled={!connected}
@@ -306,13 +375,25 @@ export function CallTweet({
             <button
               className="vote down"
               disabled={!connected}
-              title={!connected ? "Connect a wallet first" : "Trade against this call"}
+              title={!connected ? "Log in first" : "Trade against this call"}
               onClick={onFade}
             >
               <span className="arrow">▼</span> fade
             </button>
           </div>
-          {!connected && <span className="label" style={{ color: "var(--faint)" }}>connect a wallet to trade</span>}
+          {tradeStatus ? (
+            <span
+              className="label"
+              style={{ color: tradeStatus.ok ? "var(--gain)" : tradeStatus.pending ? "var(--muted)" : "var(--loss)", display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 6, flex: "1 1 160px", minWidth: 0, overflowWrap: "anywhere", whiteSpace: "normal" }}
+            >
+              {tradeStatus.pending && <span className="flick">●</span>}
+              {tradeStatus.msg}
+              {/* routing through Uniswap — surface it while the swap is in flight */}
+              {tradeStatus.pending && <PoweredBy sponsor="uniswap" label="via" size={0.85} />}
+            </span>
+          ) : (
+            !connected && <span className="label" style={{ color: "var(--faint)" }}>log in to trade</span>
+          )}
         </div>
 
         {children}

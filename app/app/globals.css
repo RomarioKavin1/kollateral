@@ -456,6 +456,47 @@ a { color: inherit; text-decoration: none; }
 .wl-row:hover { background: var(--surface); padding-left: 14px !important; }
 .wl-row:hover .label { color: var(--muted); }
 
+/* ---- landing: value-prop bento ---- */
+/* deliberate mixed spans on a 6-col field: one tall feature cell, two stacked
+   small cells, one full-width banner. Hairline seams via 1px gap over --line. */
+.bento {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(184px, auto);
+}
+.bento-cell {
+  position: relative;
+  background: var(--bg);
+  padding: 28px 26px 30px;
+  display: flex;
+  flex-direction: column;
+}
+.bento-lg { grid-column: span 4; grid-row: span 2; }
+.bento-sm { grid-column: span 2; grid-row: span 1; }
+.bento-wide { grid-column: span 6; grid-row: span 1; }
+@media (max-width: 900px) {
+  .bento { grid-template-columns: repeat(2, 1fr); }
+  .bento-lg { grid-column: span 2; grid-row: span 1; }
+  .bento-sm { grid-column: span 1; }
+  .bento-wide { grid-column: span 2; }
+}
+@media (max-width: 560px) {
+  .bento { grid-template-columns: 1fr; }
+  .bento-lg, .bento-sm, .bento-wide { grid-column: span 1; }
+}
+/* the "deleted stays on record" red flag, reusing the deletion grammar */
+.bento-flag {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 18px; padding: 6px 12px;
+  border: 1px solid color-mix(in oklch, var(--loss) 45%, var(--line));
+  background: color-mix(in oklch, var(--loss) 10%, var(--surface));
+  border-radius: var(--radius);
+}
+
 /* recharts on dark */
 .recharts-cartesian-grid line { stroke: var(--line); }
 .recharts-text { fill: var(--faint); font-family: var(--font-mono), monospace; font-size: 10px; }
