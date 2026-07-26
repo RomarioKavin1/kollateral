@@ -1,4 +1,4 @@
-# KOLlateral — submission answers
+# KOLlateral - submission answers
 
 ## Short description (max 100 characters)
 
@@ -30,7 +30,7 @@ There is also a Chrome/MV3 browser extension that carries the record onto X itse
 
 Code links point at `github.com/RomarioKavin1/kollateral` (app lives under `app/`); push `main` before submitting so the line numbers resolve.
 
-## The Graph — $15,000
+## The Graph - $15,000
 
 **Why we're applicable:** The Graph is KOLlateral's live source of on-chain data. An AI and forensic layer reads the Uniswap v2 and v3 subgraphs to price every influencer call at its exact posted timestamp and to pull each caller's own swap history, then reasons over that live data to score their record and flag said-versus-did contradictions. Nothing is mocked, and without the subgraphs there is no price and no wallet check.
 
@@ -44,7 +44,7 @@ Code links point at `github.com/RomarioKavin1/kollateral` (app lives under `app/
 
 **Additional feedback:** The gateway plus API key plus subgraph-by-id flow was clean and fast to wire up, and the Explorer made finding the right Uniswap subgraph ids easy. The friction was historical pricing: getting a token's price at a specific past timestamp meant querying hourly/daily buckets and choosing the nearest one per subgraph, and reconciling v3 (hourly) with v2 (daily) granularity in our own code. A standardized "price at timestamp" query, or a shared price schema across AMMs, would remove most of that glue.
 
-## Uniswap Foundation — $10,000
+## Uniswap Foundation - $10,000
 
 **Why we're applicable:** Uniswap is what turns a verdict into a position. The AI scores an influencer's record, and Uniswap is the layer that lets you copy the honest callers or fade the rest in a single tap, so KOLlateral is an execution loop driven by AI signals rather than a scoreboard with a swap bolted on. We integrated it two ways for real coverage: the hosted Trading API (quote then swap) for routing on Base mainnet, and, because that API does not index Base Sepolia, direct `SwapRouter02.exactInputSingle` calls against the live WETH/USDC v3 pools on testnet, with the true output amount decoded from the swap receipt so both paths settle as genuine fills. Paired with Privy delegated signing it behaves like an agent acting on a signal: authorize once, and every Follow or Fade after that executes on-chain with no prompt.
 
@@ -57,7 +57,7 @@ Code links point at `github.com/RomarioKavin1/kollateral` (app lives under `app/
 
 **Additional feedback:** The Trading API is clean where it is supported: one /quote, then /swap, and you have calldata. The blocker was Base Sepolia. The API returns "no route" / ResourceNotFound for pairs whose v3 pools are actually deployed and liquid on-chain (we confirmed WETH/USDC across all fee tiers via the factory), so we had to bypass it and call SwapRouter02 ourselves for testnet. Either index testnet pools or state plainly in the docs that the Trading API is mainnet-only, so teams do not lose hours assuming their request shape is wrong. Surfacing whether a quote is UniswapX versus a plain on-chain route would also help.
 
-## 0G — $15,000
+## 0G - $15,000
 
 **Why we're applicable:** The AI that classifies every post into a structured trade signal, and the 0-yap distillation, both run on 0G Compute with `verify_tee` enabled, so each inference executes in a TEE and returns an attestation. That verifiable inference is the product's core claim: a caller's score is provably the model's output and was not edited by anyone, including us.
 
