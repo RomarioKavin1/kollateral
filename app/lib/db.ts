@@ -1,17 +1,16 @@
-import Database from "better-sqlite3";
+// libsql is a drop-in, better-sqlite3-compatible driver, so every caller's
+// synchronous `.prepare().get()/.all()/.run()` code is unchanged. It connects
+// to a local SQLite file in dev, or to hosted Turso when TURSO_DATABASE_URL is
+// set. Turso is what closes the loop: the deployed app and the local live
+// indexer read/write one shared, persistent database.
+import Database from "libsql";
 import { readFileSync, existsSync, copyFileSync } from "fs";
 import path from "path";
 
-// Resolve the SQLite file to open.
-//
-// Local dev: use DB_PATH or the historical ./kollateral.db (unchanged).
-//
-// Vercel: serverless functions have a READ-ONLY filesystem except /tmp, and
-// instances are ephemeral. The committed seed fixture (seed/demo.db) is bundled
-// read-only into the function via outputFileTracingIncludes, so we copy it once
-// per instance into /tmp/kollateral.db (writable) and open that. If DB_PATH is
-// already a /tmp path we trust it as-is.
-function resolveDbPath(): string {
+// Local-file fallback (no Turso configured). In dev this is ./kollateral.db;
+// on Vercel without Turso it's a per-instance /tmp copy of the committed seed
+// (serverless FS is read-only except /tmp).
+function localDbPath(): string {
   const envPath = process.env.DB_PATH;
 
   if (process.env.VERCEL && !(envPath && envPath.startsWith("/tmp"))) {
@@ -26,11 +25,23 @@ function resolveDbPath(): string {
   return envPath ?? "./kollateral.db";
 }
 
-let db: Database.Database | null = null;
+let db: InstanceType<typeof Database> | null = null;
 export function getDb() {
   if (!db) {
-    db = new Database(resolveDbPath());
-    db.pragma("journal_mode = WAL");
+    const tursoUrl = process.env.TURSO_DATABASE_URL;
+    if (tursoUrl) {
+      // libsql's typed Options omits authToken although the driver supports it.
+      const opts = { authToken: process.env.TURSO_AUTH_TOKEN } as unknown as ConstructorParameters<typeof Database>[1];
+      db = new Database(tursoUrl, opts);
+    } else {
+      db = new Database(localDbPath());
+      // WAL is a local-file pragma; Turso manages journaling itself.
+      try {
+        db.pragma("journal_mode = WAL");
+      } catch {
+        /* not applicable */
+      }
+    }
     db.exec(readFileSync(path.join(process.cwd(), "lib/schema.sql"), "utf8"));
     // Task 9 (Said-vs-Did): small side table for the human/legal attribution
     // note behind a linked wallet. Kept out of schema.sql per the hackathon

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // better-sqlite3 is a native (.node) addon — keep it out of the server bundle
   // so Next uses a real Node `require` and traces the prebuilt binary correctly.
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: ["libsql", "better-sqlite3"],
 
   // getDb() reads these at runtime via dynamic paths (readFileSync / copyFileSync),
   // which the tracer can't infer. Force them into every route's function bundle:
